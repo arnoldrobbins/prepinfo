@@ -92,7 +92,7 @@ Pass == 1 && ($1 in Level)	\
 	}
 
 	if (Debug ~ "titles")
-		prnitf("Processing %s: Name = %s\n", $1, Name) > "/dev/stderr"
+		printf("Processing %s: Name = %s\n", $1, Name) > "/dev/stderr"
 
 	# save type
 	type = $1
@@ -145,8 +145,9 @@ Pass == 1 && ($1 in Level)	\
 
 	if (Debug ~ "titles") {
 		printf("Node[%s\".prev\"] = %s\n", Name, Node[Name ".prev"]) > "/dev/stderr"
+		printf(" Node[%s\".next\"] = %s\n", Node[Name ".prev"], Node[Node[Name ".prev"] ".next"]) > "/dev/stderr"
 		printf("Node[%s\".up\"] = %s\n", Name, Node[Name ".up"]) > "/dev/stderr"
-		printf("Node[%s\".child\"] = %s\n", Name, Node[Name ".child"]) > "/dev/stderr"
+		printf("Node[%s\".child\"] = %s\n", Name, Node[Name ".child"]) > "/dev/stderr"	
 	}
 }
 
@@ -272,7 +273,21 @@ Pass == 2 && /^@menu/	\
 
 	# next, compute maximum length of a node name
 	max = 0
+	if (Debug ~ "children")
+		_flag = 1
 	for (n = Node[Name ".child"]; (n ".next") in Node; n = Node[n ".next"]) {
+		if (Debug ~ "children" && _flag == 1) {
+			printf("Node: %s: Child = %s\n", Name,
+					Node[Name ".child"]) > "/dev/stderr"
+			_n = n;
+			while ((_n ".next") in Node) {
+				_nn = Node[_n ".next"]
+
+				printf("\t%s\".next\" = %s\n", _n, _nn) > "/dev/stderr"
+				_n = _nn
+			}
+			_flag = 0
+		}
 		if ((n ".desc") in Node)
 			s = Node[n ".desc"] ": " n "."
 		else
@@ -290,6 +305,7 @@ Pass == 2 && /^@menu/	\
 	for (n = Node[Name ".child"]; (n ".next") in Node; n = Node[n ".next"]) {
 		print_menuitem(n, max)
 	}
+	print_menuitem(n, max)
 
 	if (Name == "Top") {	# Master Menu
 		if (Maxlen < Min_menitem_length)

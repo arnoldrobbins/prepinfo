@@ -1,5 +1,10 @@
 1997-06-18         Arnold D. Robbins     <arnold@skeeve.atl.ga.us>
 
+	* prepinfo.awk: Typo fix (prnitf --> printf). Add more debugging,
+	especially of child nodes.
+
+1997-06-18         Arnold D. Robbins     <arnold@skeeve.atl.ga.us>
+
 	* prepinfo.awk: Improve usage message.
 	(print_menuitem): Restore necessary parenthesis in `if .. in' test.
 
