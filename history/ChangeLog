@@ -1,3 +1,9 @@
+1997-07-09         Arnold D. Robbins     <arnold@gnu.ai.mit.edu>
+
+	* prepinfo.awk: Add copyright statement.  Lots of editing in
+	comments and improvements to code formatting to avoid too-long
+	lines. Remove additional debugging added in version of 1997-06-06.
+
 1997-06-18         Arnold D. Robbins     <arnold@skeeve.atl.ga.us>
 
 	* prepinfo.awk: Typo fix (prnitf --> printf). Add more debugging,
