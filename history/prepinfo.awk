@@ -220,8 +220,8 @@ function err_prefix()
 
 function getnodename(str)
 {
-	sub(/[ \t]+,.*/, "", str)
 	sub(/@node[ \t]+/, "", str)
+	sub(/,.*/, "", str)
 	if (Debug == "nodenames")
 		printf("getnodename: return %s\n", str) > "/dev/stderr"
 	return str
@@ -308,7 +308,7 @@ function print_menuitem(n, max,		nodesc, i, dwords, count, p)
 			l = length(dwords[i])
 			if (l == 0)
 				continue
-			if (p + l + 1 >= Menumargin) {
+			if (p + l + 1 > Menumargin) {
 				printf("\n%*s", max + 2, " ")
 				p = max + 2
 			}
