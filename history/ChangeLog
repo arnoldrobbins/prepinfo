@@ -1,3 +1,10 @@
+2001-01-23         Arnold D. Robbins     <arnold@gnu.org>
+
+	* prepinfo.awk: Update copyright year.
+	* prepinfo.texi: New file that documents the program. Originally
+	intended for inclusion in the gawk manual, but it was too big
+	a section.
+
 2001-01-21         Arnold D. Robbins     <arnold@gnu.org>
 
 	* prepinfo.awk: Remove #! line. Update email address. Hardwire

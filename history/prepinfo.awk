@@ -1,6 +1,6 @@
 # prepinfo.awk --- correct node lines and build menus
 
-# Copyright (C) 1997 Arnold David Robbins
+# Copyright (C) 1997,2001 Arnold David Robbins
 #                    (arnold@gnu.org)
 #
 # PREPINFO is free software; you can redistribute it and/or

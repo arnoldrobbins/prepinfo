@@ -1,0 +1,1298 @@
+@node Prepinfo, , Miscellaneous Programs, Sample Programs
+@section Processing Texinfo Files
+
+@strong{REVIEWERS: Is this section too long?  Should it be kept in the book?
+I really like the program and I think it's useful to illustrate a larger program
+like this, but I could be biased. @code{:-)} Please let me know what you think.}
+
+This @value{SECTION} presents an extended example @command{awk} program, to help you
+get a feel for some of the problems @command{awk} can solve.
+
+The program presented here processes GNU Texinfo files, automating the
+updating of control information that describes a document's structure.
+
+@menu
+* Texinfo Introduction::        A brief overview of Texinfo control lines.
+* Prepinfo program::            A tour through the @command{prepinfo} program.
+@end menu
+
+@node Texinfo Introduction, Prepinfo program, Prepinfo, Prepinfo
+@subsection A Brief Introduction to Texinfo
+
+@cindex Texinfo
+GNU documentation is written in Texinfo.  Texinfo is a nice
+documentation format. A single input file produces both printed
+documentation using @TeX{} and the online documentation (Info files
+and HTML files).
+This @value{DOCUMENT} was written in it.
+
+Texinfo is described in
+complete detail in
+@ifinfo
+@ref{Top, , Introduction, texi, Texinfo---The GNU Documentation Format}.
+@end ifinfo
+@ifnotinfo
+@cite{Texinfo---The GNU Documentation Format}.
+@end ifnotinfo
+Here, we explain how
+Texinfo describes the structure of a document, which should be enough
+information for you to follow the logic of the @command{prepinfo} program.
+
+A Texinfo document is tree structured.
+
+@ifnottex
+@example
+@group
+                          Top
+                           |
+         -------------------------------------
+        |                  |                  |
+     Chapter 1          Chapter 2          Chapter 3
+        |                  |                  |
+     --------           --------           --------
+    |        |         |        |         |        |
+ Section  Section   Section  Section   Section  Section
+   1.1      1.2       2.1      2.2       3.1      3.2
+@end group
+@end example
+@end ifnottex
+
+@tex
+\expandafter\ifx\csname graph\endcsname\relax \csname newbox\endcsname\graph\fi
+\expandafter\ifx\csname graphtemp\endcsname\relax \csname newdimen\endcsname\graphtemp\fi
+\setbox\graph=\vtop{\vskip 0pt\hbox{%
+    \special{pn 8}%
+    \special{pa 5400 1200}%
+    \special{pa 5800 1600}%
+    \special{fp}%
+    \special{pa 4600 1600}%
+    \special{pa 4800 1300}%
+    \special{fp}%
+    \special{pa 3400 1200}%
+    \special{pa 3600 1600}%
+    \special{fp}%
+    \special{pa 400 1600}%
+    \special{pa 700 1200}%
+    \special{fp}%
+    \special{pa 2600 1600}%
+    \special{pa 2800 1300}%
+    \special{fp}%
+    \special{pa 1500 1600}%
+    \special{pa 1300 1300}%
+    \special{fp}%
+    \special{pa 5100 900}%
+    \special{pa 3400 300}%
+    \special{fp}%
+    \special{pa 1100 900}%
+    \special{pa 2700 300}%
+    \special{fp}%
+    \special{pa 3100 400}%
+    \special{pa 3100 900}%
+    \special{fp}%
+    \special{pa 5300 2000}%
+    \special{pa 6200 2000}%
+    \special{pa 6200 1600}%
+    \special{pa 5300 1600}%
+    \special{pa 5300 2000}%
+    \special{fp}%
+    \special{pa 4200 2000}%
+    \special{pa 5100 2000}%
+    \special{pa 5100 1600}%
+    \special{pa 4200 1600}%
+    \special{pa 4200 2000}%
+    \special{fp}%
+    \special{pa 3100 2000}%
+    \special{pa 4000 2000}%
+    \special{pa 4000 1600}%
+    \special{pa 3100 1600}%
+    \special{pa 3100 2000}%
+    \special{fp}%
+    \special{pa 2100 2000}%
+    \special{pa 3000 2000}%
+    \special{pa 3000 1600}%
+    \special{pa 2100 1600}%
+    \special{pa 2100 2000}%
+    \special{fp}%
+    \special{pa 1000 2000}%
+    \special{pa 1900 2000}%
+    \special{pa 1900 1600}%
+    \special{pa 1000 1600}%
+    \special{pa 1000 2000}%
+    \special{fp}%
+    \special{pa 0 2000}%
+    \special{pa 900 2000}%
+    \special{pa 900 1600}%
+    \special{pa 0 1600}%
+    \special{pa 0 2000}%
+    \special{fp}%
+    \special{ar 3050 200 450 200 0 6.28319}%
+    \special{ar 5050 1100 450 200 0 6.28319}%
+    \special{ar 3050 1100 450 200 0 6.28319}%
+    \graphtemp=.5ex\advance\graphtemp by 1.100in
+    \rlap{\kern 5.100in\lower\graphtemp\hbox to 0pt{\hss Chapter 3\hss}}%
+    \special{ar 1050 1100 450 200 0 6.28319}%
+    \graphtemp=.5ex\advance\graphtemp by 1.800in
+    \rlap{\kern 5.800in\lower\graphtemp\hbox to 0pt{\hss Section 3.2\hss}}%
+    \graphtemp=.5ex\advance\graphtemp by 1.800in
+    \rlap{\kern 4.700in\lower\graphtemp\hbox to 0pt{\hss Section 3.1\hss}}%
+    \graphtemp=.5ex\advance\graphtemp by 1.800in
+    \rlap{\kern 3.600in\lower\graphtemp\hbox to 0pt{\hss Section 2.2\hss}}%
+    \graphtemp=.5ex\advance\graphtemp by 1.100in
+    \rlap{\kern 3.100in\lower\graphtemp\hbox to 0pt{\hss Chapter 2\hss}}%
+    \graphtemp=.5ex\advance\graphtemp by 1.100in
+    \rlap{\kern 5.100in\lower\graphtemp\hbox to 0pt{\hss Chapter 3\hss}}%
+    \graphtemp=.5ex\advance\graphtemp by 0.200in
+    \rlap{\kern 3.100in\lower\graphtemp\hbox to 0pt{\hss Top\hss}}%
+    \graphtemp=.5ex\advance\graphtemp by 1.800in
+    \rlap{\kern 2.600in\lower\graphtemp\hbox to 0pt{\hss Section 2.1\hss}}%
+    \graphtemp=.5ex\advance\graphtemp by 1.800in
+    \rlap{\kern 1.500in\lower\graphtemp\hbox to 0pt{\hss Section 1.2\hss}}%
+    \graphtemp=.5ex\advance\graphtemp by 1.800in
+    \rlap{\kern 0.500in\lower\graphtemp\hbox to 0pt{\hss Section 1.1\hss}}%
+    \graphtemp=.5ex\advance\graphtemp by 1.100in
+    \rlap{\kern 1.100in\lower\graphtemp\hbox to 0pt{\hss Chapter 1\hss}}%
+    \hbox{\vrule depth2.000in width0pt height 0pt}%
+    \kern 6.200in
+  }%
+}%
+\centerline{\box\graph}
+@end tex
+@sp 1
+
+This figure is from
+@ref{Tree Structuring, ,Tree Structure of Sections, texi, Texinfo---The GNU Documentation Format}.
+It shows a document with three chapters, each of which has two sections.
+
+The tree structure can go up to four levels deep---chapters, sections,
+subsections and subsubsections.  Each item in the tree is called a ``node.''
+
+Each node has two control lines that define its place in the
+document.  The first is the @samp{@@node} line, which indicates the
+start of a node, with
+the node's name, the names of the next and previous nodes at the
+same level in the tree and then the name of the parent node
+of the current node.
+
+Then there is the ``title'' line that indicates what kind of heading to
+print, such as chapter, section and so on. Besides the regular titles, there are
+versions for unnumbered headings and for appendix titles, sections, subsections
+and so on. For example:
+
+@example
+@@c       Name,       Next,      Previous,  Up
+@@node    Chapter 2,  Chapter 3, Chapter 1, Top
+@@chapter Chapter 2
+@end example
+
+@noindent
+This example shows the @samp{@@node} line for Chapter 2 and
+an @samp{@@chapter} line.
+The line beginning with @samp{@@c} is a comment; it acts as a
+reminder for the correct ordering of items in the @samp{@@node} line.
+
+Each node with subnodes under it contains a menu
+listing the nodes, with a brief description:
+
+@example
+@@menu
+* Birds::            All about the birds.
+* Bees::             All about the bees.
+* Be Cool. Dating:   How to date and stay cool.
+* Birds and Bees::   What not to talk about with your kids.
+@@end menu
+@end example
+
+@noindent
+Menus come at the end of the node, before the @samp{@@node} line for
+the first dependent node.
+
+Menu entries begin with a @samp{*} and can span multiple lines.  There are
+also two formats.  The third item shows the long form, with a short
+description, node name and long description.  When the node name and
+short description are the same, then two colons are used.
+
+Menus are supposed to have at least two items. I.e., if there are
+subsections, there should be at least two of them.
+This is a convention that makes for good documentation style; nothing
+in software enforces it.
+
+The @samp{Top} node is the first node in a Texinfo file.
+It is special; its ``next'' node is its first child,
+its ``previous'' and ``up'' nodes are the special node @samp{(dir)},
+which is the entry point for the Info online documentation system.
+
+The @samp{Top} node also has a ``master menu'' listing all
+the nodes in the file.
+The master menu lists all the child nodes of the @samp{Top} node and
+then it lists all the nodes of the Texinfo file in sequential order.
+
+Here are some example control lines.  The subsidiary lines are indented
+to show their logical nesting level. In a real Texinfo file, they would
+not be indented.
+
+@example
+@@node Preface, Intro, Top, Top
+@@unnumbered Preface
+
+    @@node History, Manual History, Preface, Preface
+    @@unnumberedsec History of @@code@{awk@} and @@code@{gawk@}
+
+    @@node Manual History, Contributors, History, Preface
+    @@unnumberedsec The GNU Project and This Book
+
+    @@node Contributors, Acknowledgements, Manual History, Preface
+    @@unnumberedsec Major Contributors to @command{gawk}
+
+    @@node Acknowledgements, , Contributors, Preface
+    @@unnumberedsec Acknowledgements
+
+@@node Intro, Getting Started, Preface, Top
+@@chapter Introduction
+
+    @@node This Manual, Conventions, Intro, Intro
+    @@section Using This Book
+
+    @@node Conventions, Basic Concepts, This Manual, Intro
+    @@section Typographical Conventions
+
+    @@node Basic Concepts, , Conventions, What Is Awk
+    @@section Basic Programming Concepts
+@end example
+
+@node Prepinfo program, , Texinfo Introduction, Prepinfo
+@subsection A Tour Through @command{prepinfo}
+
+Suppose you are writing a large book in Texinfo, and you end
+up moving many nodes to different chapters, and/or to
+different levels (up or down).  Maintaining all the @samp{@@node}
+lines and the menus by hand is very painful. How could you automate
+this task?
+
+One solution would be to write a 1200 line C program using lots of linked
+lists. But then try to work with it a year later!@footnote{This is exactly
+what I did, in fact.}
+
+The better solution is to rewrite it in around 300 lines of awk,
+including debugging code!
+
+This @value{SUBSECTION}
+walks through an @command{awk} program that reads a Texinfo file,
+determines the structure of the file and then writes out a new version
+with correct @samp{@@node} lines @emph{and} correct menus.
+
+This example demonstrates how @command{awk}'s data-driven nature makes it easier
+to concentrate on the task at hand and not the supporting scaffolding.
+It also demonstrates the power of associative arrays.
+
+This program was written to support development of the @command{gawk}
+documentation, so it was only natural that it be written in @command{awk}.
+It is now part of the Texinfo distribution.
+
+As an example of what @command{prepinfo} does, consider a Texinfo file with
+the following @samp{@@node} and title lines in it:
+
+@example
+@@node Intro, Getting Started, Preface, Top
+@@chapter Introduction
+
+@@node This Manual
+@@section Using This Book
+
+@@node Conventions
+@@section Typographical Conventions
+
+@@node Basic Concepts
+@@section Basic Programming Concepts
+@end example
+
+@noindent
+The output would be:
+
+@example
+@@node Intro, Getting Started, Preface, Top
+@@chapter Introduction
+
+@@node This Manual, Conventions, Intro, Intro
+@@section Using This Book
+
+@@node Conventions, Basic Concepts, This Manual, Intro
+@@section Typographical Conventions
+
+@@node Basic Concepts, , Conventions, What Is Awk
+@@section Basic Programming Concepts
+@end example
+
+The program works in the following steps.
+
+@enumerate 1
+@item
+Initialize all global variables and arrays.  Arrange to make two
+passes over the data, the first to gather information, the second to
+generate the updated version.
+
+@item
+During the first pass, collect information about nodes. In particular,
+determine the node's parent, next and previous siblings, and first child.
+Also gather all the menu information for a node.
+
+@item
+During the second pass, use the gathered information to generate
+updated @samp{@@node} lines and correct menus.
+@end enumerate
+
+@menu
+* Prepinfo Initialization::     Initialization code.
+* Prepinfo Support::            Some support functions for @command{prepinfo}.
+* Gathering Node Info::         Gathering information about nodes.
+* Gathering Menu Info::         Gathering menu information.
+* Printing Updated Info::       Printing updated node and menu information.
+@end menu
+
+@node Prepinfo Initialization, Prepinfo Support, Prepinfo program, Prepinfo program
+@subsubsection Initialization
+
+The @code{BEGIN} rule does some initialization. Besides some manifest
+constants, the @code{Level} array is important. It indicates the level for
+all the title lines that can appear in Texinfo.
+
+@cindex @code{prepinfo.awk} program
+@example
+@c file eg/prog/prepinfo.awk
+# prepinfo.awk --- correct node lines and build menus
+@c endfile
+@ignore
+@c file eg/prog/prepinfo.awk
+
+# Copyright (C) 1997,2001 Arnold David Robbins
+#                    (arnold@@gnu.org)
+#
+# PREPINFO is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later
+# version.
+#
+# PREPINFO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+
+@c endfile
+@end ignore
+@c file eg/prog/prepinfo.awk
+BEGIN    \
+@{
+    # manifest constants
+    TRUE = 1
+    FALSE = 0
+
+    # Levels at which different nodes can be
+    Level["@@top"] = 0
+    Level["@@appendix"] = 1
+    Level["@@chapter"] = 1
+    Level["@@majorheading"] = 1
+    Level["@@unnumbered"] = 1
+    Level["@@appendixsec"] = 2
+    Level["@@section"] = 2
+    Level["@@heading"] = 2
+    Level["@@unnumberedsec"] = 2
+    Level["@@unnumberedsubsec"] = 3
+    Level["@@appendixsubsec"] = 3
+    Level["@@subsection"] = 3
+    Level["@@subheading"] = 3
+    Level["@@unnumberedsubsubsec"] = 4
+    Level["@@appendixsubsubsec"] = 4
+    Level["@@subsubsection"] = 4
+    Level["@@subsubheading"] = 4
+@c endfile
+@end example
+
+@cindex conventions, programming
+@cindex programming conventions
+@noindent
+The @code{Level} array also shows a convention used throughout this
+program: global variables begin with an initial uppercase letter.
+
+The program has two variables for controlling how menus are printed; they
+are initialized here and then the program does some rudimentary argument
+checking.
+
+@example
+@c file eg/prog/prepinfo.awk
+    # Length of menus
+    Menumargin = 78
+
+    # Length of menu item
+    Min_menitem_length = 29
+
+    # Ensure that we were called correctly
+    if (ARGC != 2) @{
+        print "usage: prepinfo texinfo-file > new-file\n" \
+	              > "/dev/stderr"
+        exit 1
+    @}
+@c endfile
+@end example
+
+The @code{Menumargin} item indicates how long a menu line can be before
+it is broken onto the next line.
+
+Similarly, @code{Min_menitem_length} indicates how long the combination
+of the short description and node name should be.  In other words, the
+two together are padded with spaces to this length. This makes the long
+descriptions all start in the same column, which gives the menus a
+very nice appearance.
+
+An enhancement to this program would allow both of these variables to be
+adjusted by the user simply by doing a command-line variable assignment
+(@pxref{Assignment Options,  ,  Assigning Variables on the Command Line}).
+
+After setting @code{Min_menitem_length},
+the next chunk of code does some simple error checking, to make
+sure that the program was invoked correctly.
+
+@cindex multiple passes over data
+@cindex passes, multiple
+Here we see how a program can manipulate the list of files that it will
+process. Note how @code{ARGV[2]} is set to a variable assignment! This
+will be processed after the first pass through the input file is complete.
+
+@example
+@c file eg/prog/prepinfo.awk
+    # Arrange for two passes over input file
+    Pass = 1
+    ARGV[2] = "Pass=2"
+    ARGV[3] = ARGV[1]
+    ARGC = 4
+@c endfile
+@end example
+
+The program makes two passes, one to build up all the data structures
+and then the second to write out the correct information. By doing this
+assignment, we can tell which pass we're on.
+
+Two arrays, @code{Up} and @code{Prev}, keep track of information about
+the current node's place in the hierarchical tree structure of the document.
+The variable @code{Lastlevel} indicates the level of the @emph{last}
+node that we processed.
+They are initialized here.
+
+@example
+@c file eg/prog/prepinfo.awk
+    # Initialize stacks
+    Lastlevel = -1
+    Up[-1] = "(dir)"
+    Prev[0] = "(dir)"
+
+    if (Debug ~ "args") @{
+        for (i = 0; i < ARGC; i++)
+            printf("ARGV[%d] = %s\n",
+                i, ARGV[i]) > "/dev/stderr"
+    @}
+@}
+@c endfile
+@end example
+
+The @code{Up} and @code{Prev} arrays serve as stacks. The value of
+@code{Up[@var{current level} - 1]} is the name of the node above the current
+one.  The value of @code{Prev[@var{current level}]} is the name of the
+current node's previous sibling.
+
+Why is this useful? For example, we have to set the ``next'' field of the
+previous node to point to this node.
+
+The next chunk of code is for debugging. The @code{Debug} variable
+can be set to a string using the @option{-v} command-line option.
+That string can contain any number of different keywords to turn on
+debugging for a particular kind of information.
+
+Initially, the program used @samp{==} for all the debugging conditionals.
+However, this only allows one thing to be debugged at a time. By using a
+regexp match, any number can be debugged simultaneously.
+
+@node Prepinfo Support, Gathering Node Info, Prepinfo Initialization, Prepinfo program
+@subsubsection Support Functions for @command{prepinfo}
+
+Here are some supporting functions that are used throughout the rest
+of the program.
+
+@example
+@c file eg/prog/prepinfo.awk
+function err_prefix()
+@{
+    printf("prepinfo:%s:%d: ", FILENAME, FNR) > "/dev/stderr"
+@}
+
+function getnodename(str)
+@{
+    sub(/^@@node[ \t]+/, "", str)
+    sub(/[ \t]*,.*/, "", str)
+    if (Debug ~ "nodenames")
+        printf("getnodename: return %s\n",
+                            str) > "/dev/stderr"
+    return str
+@}
+@c endfile
+@end example
+
+The @code{err_prefix} function simply prints the program, @value{FN}
+and line number as a prefix to the real error message. It saves
+typing in the program itself.
+
+The @code{getnodename} function takes care of extracting the node
+name from the @code{@@node} line, using @code{sub}
+(@pxref{String Functions, ,String Manipulation Functions}).
+
+@node Gathering Node Info, Gathering Menu Info, Prepinfo Support, Prepinfo program
+@subsubsection Gathering Information About Nodes
+
+The first pass reads through the Texinfo file gathering information. Here is
+the first of the rules that does this collection.  Its job is to skip over
+things that are purposely being ignored, e.g., chapters that are still being
+written.  Such text is bracketed by @samp{@@@w{ignore}} and @samp{@@@w{end} ignore}.
+
+@example
+@c file eg/prog/prepinfo.awk
+/^@@ignore/ && Pass == 1, /^@@end[ \t]+ignore/ && Pass == 1 @{
+    next
+@}
+@c endfile
+@end example
+
+@cindex flag variables
+The job for the next rule is simply
+to find and save the name of the current node in the variable @code{Name}.
+It then sets the @code{Nodeseen} flag, so that when we find a title line,
+we know we've already seen the corresponding node.
+
+It also tracks the length of each node's name, finding the maximum length.
+This is used later, for printing the master menu.
+
+@example
+@c file eg/prog/prepinfo.awk
+# @@node lines, save nodename
+$1 == "@@node"    \
+@{
+    Name = getnodename($0)
+    Nodeseen = TRUE
+
+    if ((l = length(Name)) > Maxlen)
+        Maxlen = l
+
+    if (Debug ~ "nodenames")
+        printf("Name = %s\n", Name) > "/dev/stderr"
+
+    if (Pass == 1)
+        next
+@}
+@c endfile
+@end example
+
+Occasionally, there are subtopics that don't deserve their own node.
+@xref{String Functions, ,String Manipulation Functions},
+for an example.
+Yet, one still has to provide an @samp{@@unnumberedsubsec} title line
+to get the correct output.  We have to have a way to tell @command{prepinfo}
+to ignore the next title line that it sees.
+
+The solution is to have a special comment line indicating that the following
+title line should be ignored. These are called ``fakenodes.''
+
+@example
+@c file eg/prog/prepinfo.awk
+Pass == 1 && /^@@c(omment)?[ \t]+fakenode/ \
+@{
+    if (Debug ~ "fakenodes")
+        printf("fakenode at %d\n", FNR) > "/dev/stderr"
+    Fakenode = TRUE
+    next
+@}
+@c endfile
+@end example
+
+Comments in Texinfo start with either @samp{@@c} or @samp{@@comment}
+at the beginning of a line.
+Thus the regexp indicates that the @samp{omment} part is optional.
+
+@cindex flag variables
+Now we start looking for @samp{@@chapter}, @samp{@@section}, etc. lines.
+Note the use of @samp{($1 in Level)} as a fast check for whether this is
+a title line or not.
+If this line is associated with a fake node, we reset the @code{Fakenode}
+flag and go on to the next line.
+Otherwise, we save the type of the line in @code{type} for later use.
+If this is a title line without a previous @code{@@node} line, we just
+skip it, otherwise the @code{Nodeseen} flag is reset for next time.
+
+@example
+@c file eg/prog/prepinfo.awk
+# Build the tree of nodes in associative array `Node'
+Pass == 1 && ($1 in Level)    \
+@{
+    # Skip fake nodes --- titles without @@node lines
+    if (Fakenode) @{
+        if (Debug ~ "fakenodes")
+            printf("%s at %d is a fakenode\n", $1,
+                                      FNR) > "/dev/stderr"
+        Fakenode = FALSE
+        next
+    @}
+
+    if (Debug ~ "titles")
+        printf("Processing %s: Name = %s\n", $1,
+                                     Name) > "/dev/stderr"
+
+    # save type
+    type = $1
+
+    if (! Nodeseen) @{
+        err_prefix()
+        printf("%s line with no @@node or fakenode line\n",
+            type) > "/dev/stderr"
+        next
+    @} else
+        Nodeseen = FALSE    # reset it
+@c endfile
+@end example
+
+We keep the folloing information about each node.
+
+@tex
+@hbox to @hsize{@hfill @vbox{\hsize=3in %
+@multitable {@w{Name ".longdesc"}} {Short description for menu (optional)}
+@item @code{Name ".level"} @tab Level number of this node
+@item @code{Name ".up"} @tab Parent of this node
+@item @code{Name ".prev"} @tab Previous node to this node
+@item @code{Name ".next"} @tab Node after this node
+@item @code{Name ".child"} @tab First child of this node
+@item @code{Name ".mendesc"} @tab Short description for menu (optional)
+@item @code{@w{Name ".longdesc"}} @tab Long description for menu
+@end multitable
+}@hfill}%
+@end tex
+
+@ifnottex
+@multitable {@w{Name ".longdesc"}} {Short description for menu (optional)}
+@item @code{Name ".level"} @tab Level number this node is at
+@item @code{Name ".up"} @tab Parent of this node
+@item @code{Name ".prev"} @tab Previous node to this node
+@item @code{Name ".next"} @tab Node after this node
+@item @code{Name ".child"} @tab First child of this node
+@item @code{Name ".mendesc"} @tab Short description for menu (optional)
+@item @code{@w{Name ".longdesc"}} @tab Long description for menu
+@end multitable
+@end ifnottex
+
+The associative array @code{Node} stores all the information about each node.
+The indices are made up by concatenating the node name with a fixed string.
+It could just as easily have been done with multiple dimensions but this
+way is better if we need to print the index (e.g., for debugging).
+
+@example
+@c file eg/prog/prepinfo.awk
+    # Squirrel away the info
+    levelnum = Level[type]
+    Node[Name ".level"] = levelnum
+
+    if (Debug ~ "titles") @{
+        printf("Node[%s\".level\"] = %s\n", Name,
+                    Node[Name ".level"]) > "/dev/stderr"
+        printf("Node[%s\".name\"] = %s\n", Name,
+                    Node[Name ".name"]) > "/dev/stderr"
+    @}
+@c endfile
+@end example
+
+If you think this looks like C or C++ structure notation, you're right.
+All of this information is needed for each node. We'll see below how to
+use these indices to simulate a linked-list walk.
+
+As we go through the file, we have to update the ``links.'' For example,
+we have to
+set the @code{".next"} link of the @emph{previous} node to point to
+the current node.
+
+There are three cases. This is the first, where this node and the previous
+node are at the same level.  This occurs, for example, when there are two
+sections one right after the other.
+
+@example
+@c file eg/prog/prepinfo.awk
+    if (levelnum == Lastlevel) @{
+        # e.g., two sections in a row
+        Node[Name ".up"] = Up[levelnum - 1]
+        if (levelnum in Prev) @{
+            Node[Prev[levelnum] ".next"] = Name
+            Node[Name ".prev"] = Prev[levelnum]
+        @}
+        Prev[levelnum] = Name
+        Up[levelnum] = Name
+    @}
+@c endfile
+@end example
+
+First, we set the @code{".up"} link to point to the parent node. This
+is maintained in the @code{Up} array, indexed by the next lowest level
+number.
+(Lower numbers are logically higher in the tree.)
+
+Next, we check that there is a previous node. This test would be false, for
+instance, for the first section in a chapter.  If there is a previous node,
+we set its @code{".next"} link to point to the current node. Then we
+set our @code{".prev"} link to point to the previous one.
+
+Finally, we update the @code{Prev} and @code{Up} arrays to point to
+the current node, so that it is the previous node for the next one at this level
+and the parent node for any children.
+
+Next comes the second of the three cases, where our level number is lower
+than that of the previous one. This means that we are now at a conceptually
+higher level in the tree, for example, a chapter following the last section
+of the previous chapter.
+
+@example
+@c file eg/prog/prepinfo.awk
+    else if (levelnum < Lastlevel) @{
+        # section, now chapter
+        Lastlevel = levelnum
+        Node[Name ".up"] = Up[levelnum - 1]
+        if (levelnum in Prev) @{
+            Node[Name ".prev"] = Prev[levelnum]
+            Node[Prev[levelnum] ".next"] = Name
+        @}
+        Prev[levelnum] = Name
+        Up[levelnum] = Name
+    @}
+@c endfile
+@end example
+
+Since the level has changed, we have to update @code{Lastlevel} to be
+the current level.  Then we set the @code{".up"} pointer, just as before.
+
+And again, if there is a previous node at this level, we set our
+@code{".prev"} link to point to it and then we update its @code{".next"}
+link to point to the current node.
+
+And finally, we update the two stacks, @code{Prev} and @code{Up}.
+
+The third case is where we've gone down a level, for instance from a
+chapter to a section.
+
+@example
+@c file eg/prog/prepinfo.awk
+    else @{
+        # chapter, now section,
+        # levelnum > Lastlevel
+        Node[Name ".up"] = Up[levelnum - 1]
+        Node[Up[Lastlevel] ".child"] = Name
+        Prev[levelnum] = Name
+        Up[levelnum] = Name
+        Lastlevel = levelnum
+    @}
+
+    # For master menu
+    if (Level[$1] >= 2)
+        List[++Sequence] = Name
+
+    if (Debug ~ "titles") @{
+        printf("Node[%s\".prev\"] = %s\n", Name,
+                   Node[Name ".prev"]) > "/dev/stderr"
+        printf("Node[%s\".up\"] = %s\n", Name,
+                   Node[Name ".up"]) > "/dev/stderr"
+        printf("Node[%s\".child\"] = %s\n", Name,
+                   Node[Name ".child"]) > "/dev/stderr"
+    @}
+@}
+@c endfile
+@end example
+
+First, we set the @code{".up"} link of the current node to point to
+its parent. Then we update the @code{".child"} link of the parent to
+point to the current node, which is the first child.
+
+Then, as before, we update the @code{Prev} and @code{Up} stacks, and
+change the value of @code{Lastlevel} to the current level.
+
+So, as we go along, we build a tree structure of nodes, all using
+the indices of the associative array. By using the @code{".child"} links,
+we can move from a node to the first of its children, and then use the
+@code{".next"} links to navigate through all the nodes at a given level.
+
+After updating the links, the code saves each section-and-below level node
+in the sequential array @code{List}.  This is used later for
+dumping out the master menu that lists all the nodes in the Texinfo file.
+
+Finally, more debug code keeps us informed about the information collected
+so far.
+
+@example
+@c file eg/prog/prepinfo.awk
+Pass == 2 && Debug ~ "dumptitles" && FNR <= 1    \
+@{
+    for (i in Node)
+        printf("Node[%s] = %s\n", i, Node[i]) | "sort 1>&2"
+    close("sort 1>&2")
+@}
+@c endfile
+@end example
+
+This rule is for debugging only (@samp{Debug ~ "dumptitles"}).
+After the first pass
+(@samp{Pass == 2}),
+before doing any significant processing
+(@samp{FNR <= 1}),
+it dumps out a list of all the node titles. They
+are run through the system @command{sort} utility, to provide some order.
+The output from @command{sort} is redirected to the standard error.
+
+@node Gathering Menu Info, Printing Updated Info, Gathering Node Info, Prepinfo program
+@subsubsection Gathering Menu Information
+
+This next rule handles extracting information out of menus.  This code
+works for the Texinfo source for this @value{DOCUMENT}. It may not handle
+menus in their most general form, as they appear in other Texinfo files.
+
+@example
+@c file eg/prog/prepinfo.awk
+/^@@menu/ && Pass == 1, /^@@end[ \t]menu/ && Pass == 1    \
+@{
+    if (/^@@menu/ || /^@@end[ \t]menu/)
+        next
+
+    if (/^@@detailmenu/ || /^@@end[ \t]+detailmenu/)
+        next
+
+#    if (Debug ~ "menu")
+#        printf("processing: %s\n", $0) > "/dev/stderr"
+
+    if (/^\*/) @{
+        if (In_menitem) @{  # Save info from previous line
+            Node[node ".mendesc"] = desc
+            Node[node ".longdesc"] = longdesc
+            if (Debug ~ "mendesc") @{
+                printf("Node[%s.mendesc] = %s\n", node
+                    Node[node ".mendesc"]) > "/dev/stderr"
+                printf("Node[%s.longdesc] = %s\n", node
+                    Node[node ".longdesc"]) > "/dev/stderr"
+            @}
+        @}
+        In_menitem = TRUE
+@c endfile
+@end example
+
+The pattern is a range pattern, so the rule only gets executed for lines
+bracketed by @samp{@@menu} and @samp{@@end menu}.
+The first statement in the action part simply ignores those lines.
+The next statement ignores @samp{@@detailmenu} lines; the detailed menu
+is discussed below.
+
+If the current line begins with a @samp{*}, it's the beginning of a new
+menu item.  If we were already in one, then we're done collecting it and
+it needs to be saved away. The @code{node} variable is the name of the
+node whose menu item we were processing.
+
+In any case, whether we were processing a menu item before or not, we
+are now in one, so we set @code{In_menitem} to true.
+
+Now it's time to pull the menu item apart into its component pieces---the
+node name, the short description and the long description.
+
+@example
+@c file eg/prog/prepinfo.awk
+        # Pull apart menu item
+        $1 = ""        # nuke ``*''
+        $0 = $0        # reparse line
+        i1 = index($0, ":")
+        if (i1 <= 0) @{
+            err_prefix()
+            printf("badly formed menu item") > "/dev/stderr"
+            next
+        @}
+@c endfile
+@end example
+
+@noindent
+The first two lines remove the @samp{*} and then reparse the line.
+If there is no colon, it's a bad entry (see the description of menus
+earlier), so the line is skipped.
+
+The first case is a three-part menu item, which consists of the short
+description, a period, the node name, a colon and then the long description,
+which can be multi-line (e.g.,
+@samp{Be Cool. Dating: How to date and stay cool.}).
+
+@example
+@c file eg/prog/prepinfo.awk
+        # desc: node.   long desc
+        if (substr($0, i1+1, 1) != ":") @{
+            i2 = index($0, ".")
+            if (i2 <= 0) @{
+                err_prefix()
+                printf("badly formed menu item") \
+                                    > "/dev/stderr"
+                next
+            @}
+            desc = substr($0, 1, i1 - 1)
+            node = substr($0, i1+1, i2 - i1 - 1)
+            sub(/^[ \t]+/, "", node)
+            sub(/[ \t]+$/, "", node)
+            sub(/^[ \t]+/, "", desc)
+            sub(/[ \t]+$/, "", desc)
+            longdesc = substr($0, i2 + 1)
+        @}
+@c endfile
+@end example
+
+Most of the work is the use of @code{substr} to pull out the
+various pieces, without getting the colon and the period.  Then the
+various calls to @code{sub} simply remove leading and trailing whitespace.
+
+Finally, we start to build up the long description, kept in the variable
+@code{longdesc}.
+
+@example
+@c file eg/prog/prepinfo.awk
+        else @{    # nodename:: long desc
+            desc = ""
+            node = substr($0, 1, i1 - 1)
+            sub(/^[ \t]+/, "", node)
+            sub(/[ \t]+$/, "", node)
+            longdesc = substr($0, i1 + 2)
+        @}
+    @}
+    else if (In_menitem) @{    # Continuation line
+        longdesc = longdesc " " $0
+    @} else
+        In_menitem = FALSE
+
+    Node[node ".mendesc"] = desc
+    Node[node ".longdesc"] = longdesc
+
+    if (Debug ~ "mendesc") @{
+        printf("Node[%s.mendesc] = %s\n",
+            node, Node[node ".mendesc"]) > "/dev/stderr"
+        printf("Node[%s.longdesc] = %s\n",
+            node, Node[node ".longdesc"]) > "/dev/stderr"
+    @}
+
+    if (Debug ~ "menu") @{
+        printf("Menu:: Name %s: desc %s: longdesc %s\n",
+            node, desc, longdesc) > "/dev/stderr"
+    @}
+@}
+@c endfile
+@end example
+
+The first @samp{else} handles the more common menu line, where
+there is no short description.  Its use of @code{substr} and @code{sub}
+is similar to the first part of the @code{if} but there's not as
+much to extract in the case of just a node name and long description.
+
+If the line did not begin with a @samp{*} and we were in a menu item,
+we have a subsequent line from a long description. So we add it to the
+end of the @code{longdesc} variable.
+
+Finally, we save the node's description and long description. This
+has to be done right away; consider the case of the last menu line in
+a menu; it would be less obvious what was happening if the long description
+were finalized upon seeing the @samp{@@end menu} line.
+
+The debugging code at the end provides all the information there is about
+the node's menu.
+
+Let's take stock of what we've done so far:
+
+@itemize @bullet
+@item
+Collect each node's level and link information.
+
+@item
+Collect each node's menu information.
+@end itemize
+
+The complicating factors are:
+
+@itemize @bullet
+@item
+Tracking the level of everything correctly.
+
+@item
+Menu entries are a pain.
+
+@item
+Getting rid of extra whitespace in things.
+@end itemize
+
+@node Printing Updated Info, , Gathering Menu Info, Prepinfo program
+@subsubsection Printing Updated Nodes and Menus
+
+All the rules that handle printing the new version of the file depend
+upon the comparison @samp{Pass == 2}.  Since the @code{BEGIN} rule
+set up @samp{ARGV[2] = "Pass=2"}, the condition becomes true
+for the second pass over the file.
+
+The first thing to do is print correct @samp{@@node} lines.  This rule
+extracts the node name. It then does some special case handling for the
+@samp{Top} node.  The variable @code{n} is the next node for the
+current one.
+
+@example
+@c file eg/prog/prepinfo.awk
+# print @@node line
+Pass == 2 && /^@@node/    \
+@{
+    Name = getnodename($0)
+
+    # Top node is special. Its next is the first child
+    n = Node[Name ".next"]
+    if (Node[Name ".level"] == 0 && n == "")
+        n = Node[Name ".child"]
+
+    printf("@@node %s, %s, %s, %s\n", Name, n,
+        Node[Name ".prev"] ? Node[Name ".prev"] \
+                           : Node[Name ".up"],
+        Node[Name ".up"])
+    next
+@}
+@c endfile
+@end example
+
+It is conventional in Texinfo files, when there is no previous node, to
+use the ``up'' node in that slot. The test with @samp{?:} handles this.
+
+Printing menus well is a lot of work, as we're about to see.
+
+@example
+@c file eg/prog/prepinfo.awk
+# print menu for current node
+Pass == 2 && /^@@menu/    \
+@{
+    # First, skip current contents of menu
+    do @{
+        if ((getline) <= 0) @{
+            err_prefix()
+            printf("unexpected EOF inside menu\n") \
+                                      > "/dev/stderr"
+            exit 1
+        @}
+    @} while (! /^@@end[ \t]menu/)
+@c endfile
+@end example
+
+When the beginning of a menu is seen, the program reads and skips all
+the lines up to the end of the menu. The whole menu is
+regenerated from scratch, based on the information collected in the
+first pass.
+
+Note the use of @samp{(getline)} with parentheses to emphasize the
+comparison of the return value with zero.
+
+This next section determines the maximum length of the name of any node in
+this menu.  This is used for pretty formatting, later.
+
+@example
+@c file eg/prog/prepinfo.awk
+    # Next, compute maximum length of a node name
+    max = 0
+    for (n = Node[Name ".child"]; (n ".next") in Node;
+                                   n = Node[n ".next"]) @{
+        if ((n ".desc") in Node)
+            s = Node[n ".desc"] ": " n "."
+        else
+            s = n "::"
+        l = length(s)
+        if (l > max)
+            max = l
+    @}
+    if (max < Min_menitem_length)
+        max = Min_menitem_length
+@c endfile
+@end example
+
+Note how the @code{for} loop walks down the list of nodes, starting
+with the first child and going through the @code{".next"} link to
+each subsequent node.
+This is essentially a linked list walk but with associative arrays!
+
+The body of the loop just deals with whether the node has a short
+description or not. It builds up a sample output string to get the
+correct length.
+
+Finally, after the loop is done, if @code{max} is less than the
+@code{Min_menitem_length} set earlier, we set it equal to
+@code{Min_menitem_length}.
+
+Printing the menu is straightforward. We print the @samp{@@menu} line
+and then again walk through all the nodes, printing their menu items.
+The actual printing is done by @code{print_menuitem}, which is shown below.
+The final call to @code{print_menuitem} is necessary to get the menu for
+the current node; it is not printed by the @code{for} loop, since it
+does not have a @code{".next"} link.
+
+If this is the @samp{Top} node, then in addition to the regular
+contents of the menu, we have to print the master menu, which has all
+the section-level and below nodes in sequential order.
+The section-level and below nodes should be bracketed by the
+@samp{@@detailmenu} and @samp{@@end detailmenu} commands.
+
+@example
+@c file eg/prog/prepinfo.awk
+    # Now dump the menu
+    print "@@menu"
+
+    for (n = Node[Name ".child"]; (n ".next") in Node;
+                                   n = Node[n ".next"]) @{
+        print_menuitem(n, max)
+    @}
+    print_menuitem(n, max)
+
+    if (Name == "Top") @{    # Master Menu
+        if (Maxlen < Min_menitem_length)
+            Maxlen = Min_menitem_length
+        print ""
+        print "@@detailmenu"
+        for (i = 1; i <= Sequence; i++)
+            print_menuitem(List[i], Maxlen)
+        print "@@end detailmenu"
+    @}
+    print "@@end menu"
+    next
+@}
+
+Pass == 2    # print
+@c endfile
+@end example
+
+The @code{Maxlen} variable is the length of the longest node name in
+the whole Texinfo file. We make sure it's at least as big as
+@code{Min_menitem_length} and then we print out all the nodes in
+the @code{List} array.
+
+Finally, the @samp{@@end menu} is printed and we go on to the next
+input line.
+
+The rule at the end handles anything that isn't an @samp{@@node} or
+@samp{@@menu} line.  These should just be printed as is.
+
+The last major task is to format and print menu items.
+This function handles that job.  Note the local
+variables at the end of the parameter list.
+
+@example
+@c file eg/prog/prepinfo.awk
+# Print nice description with reformatting as needed
+function print_menuitem(n, max,    # params
+                        nodesc, i, dwords, count, p)
+@{
+    nodesc = FALSE
+    if (! ((n ".longdesc") in Node)) @{
+        err_prefix()
+        printf("warning: %s: no long description\n",
+                          n) > "/dev/stderr"
+        nodesc = TRUE
+    @} else
+        count = split(Node[n ".longdesc"], dwords, " ")
+
+    if ((n ".desc") in Node)
+        s = Node[n ".desc"] ": " n "."
+    else
+        s = n "::"
+    printf("* %-*s", max, s)
+
+    if (Debug ~ "mendescitem")
+        printf("<* %-*s>\n", max, s) > "/dev/stderr"
+@c endfile
+@end example
+
+The @code{nodesc} variable is true if there is no long description.
+If there is a long description, @code{split} puts each word into
+the @code{dwords} array and @code{count} contains how many words
+there are.
+Note that the default field separator @w{@code{" "}} will
+split on newlines as well as on spaces and tabs.
+(@pxref{String Functions, ,String Manipulation Functions}).
+
+The @code{if} statement builds up the right text for the initial part
+of the menu entry and then it's printed. Note the use of the dynamic
+field width in the @code{printf} statement
+(@pxref{Format Modifiers, , Modifiers for @code{printf} Formats}).
+
+The debugging statement lets us see the final form of the description.
+
+Finally, the long description (if there is one), is printed.
+
+@example
+@c file eg/prog/prepinfo.awk
+    p = max + 2
+    if (! nodesc) @{
+        for (i = 1; i <= count; i++) @{
+            l = length(dwords[i])
+            if (l == 0)
+                continue
+            if (p + l + 1 > Menumargin) @{
+                printf("\n%*s", max + 2, " ")
+                p = max + 2
+            @}
+            printf(" %s", dwords[i])
+            p += l + 1
+        @}
+    @}
+    print ""
+@}
+@c endfile
+@end example
+
+The variable @code{p} is the starting column on the line where the
+words for the long description are to go. It also tracks the current
+position on the output line.
+
+If there is a long description, then it is printed, word by word.
+Before printing each word, the program checks that the word is non-zero
+in length and also that this word won't go past the last character
+on the output line (in @code{Menumargin}).
+
+If the word would overshoot the margin, then we print a newline and
+enough spaces to get to where the word needs to go.  Again note the
+use of the dynamic field width specification in the @code{printf} statement.
+
+As each word is printed, @code{p} is incremented by the length of
+the word plus one, for the leading space that separates words.
+
+The last word in the long description will not have the final newline.
+This is handled by the @samp{print ""} at the end.
+
+Hopefully @command{prepinfo} has given you a feel for the power of @command{awk}
+in action.  This program continues to be an invaluable tool for managing the ongoing
+evolution of this @value{DOCUMENT}.
+
+Some of the interesting points about this program are:
+
+@itemize @bullet
+@item
+In very little code, it accomplishes a significant data-manipulation task.
+
+@item
+The two-pass nature of the program; the first to gather data and the
+second to generate the modified version of the Texinfo file.
+
+@item
+The way the @code{BEGIN} rule manipulates @code{ARGC} and @code{ARGV} to
+arrange for two passes over the input.
+
+@item
+How regexp matching against the @code{Debug} variable controls the
+kind(s) of debugging information that's printed.
+
+@item
+The way it uses associative arrays to simulate the records or structures of
+conventional programming languages.
+
+@item
+The way it uses associative arrays to create a ``linked list'' of these
+structures and to navigate them.
+@end itemize
+
