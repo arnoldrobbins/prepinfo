@@ -18,6 +18,11 @@
  */ 
 
 /*
+ * This is a preliminary version of an unpublished program.  Please do
+ * not give this code to anyone else.
+ */
+
+/*
  * Purpose --- to automate arranging of @node lines by intuiting structure
  * from @chapter, @section, etc. lines and their ordering in a file, and
  * generate correct menus.
@@ -54,21 +59,20 @@
  * For this program to work, with the execption of the first node, EVERY
  * title must have a node associated with it.  For TeX's purposes, the nodes
  * are not necessary.  So, if any title does not have a real node, it should
- * be preceeded by ``@c fakenode <name>'' where <name> is some arbitrary name.
- * Prepinfo will build and incorporate a node.  This keeps all the pointers
- * and relationships correct.
+ * be preceeded by ``@c fakenode - for prepinfo''. Prepinfo will then ignore
+ * this title.
  *
  * For best results, the @node should precede the @chapter, @section, etc.
  *
  * MENUS:
  *
- * Prepinfo can only do so much.  To generate correct menues, it has to know
- * where to put them.  Therefore, while prepinfo will produce correct menues,
+ * Prepinfo can only do so much.  To generate correct menus, it has to know
+ * where to put them.  Therefore, while prepinfo will produce correct menus,
  * each chapter, section, etc. must have at least an empty @menu, @end menu
  * pair to indicate for the second pass where the menu should go.  This is
  * not an unreasonable restriction.
  *
- * Menus are handled as follows.  On the first pass, slurp up the entire
+ * Menues are handled as follows.  On the first pass, slurp up the entire
  * text of the menu into a buffer.  Pull it apart as follows: Any leading
  * comment is associated with the current node.  The menu item name, node
  * name and description are then isolated, null terminated, and a menu
@@ -85,17 +89,20 @@
  * TODO:
  *	Switch to GNU readline.
  *	If stdin is pipe, save input in a temp file.
+ *	Add an option to leave the menus alone.
+ *	Add an option for an output file.
+ *	Read input from multiple command line files.
  */
 
 #include <stdio.h>
 #include <ctype.h>
 
-/* the "Top" node is special cased to be level 1, so chapter is 2, etc. */
+/* the "Top" node is special-cased to be level 1, so chapter is 2, etc. */
 
 struct title {		/* texinfo headings, chapter, section, etc. */
 	char *t_text;	/* text of heading */
 	short t_level;	/* level */
-} titles[] = {
+} titles[] = {				/* this array MUST be sorted */
 	"appendix",			2,
 	"appendixsec",			3,
 	"appendixsubsec",		4,
@@ -576,7 +583,13 @@ NODE *np;
 	}
 	printf ("@node %s, ", np -> n_name);
 	printf ("%s, ", np -> n_next ? np -> n_next -> n_name : blank);
-	printf ("%s, ", np -> n_prev ? np -> n_prev -> n_name : blank);
+	/*
+	 * It's not clear in the manual, but makeinfo wants the UP node
+	 * for the PREV field if there is no PREV node.
+	 */
+	printf ("%s, ", np -> n_prev ? np -> n_prev -> n_name :
+				np -> n_up ? np -> n_up -> n_name :
+				blank);
 	printf ("%s\n", np -> n_up ? np -> n_up -> n_name : blank);
 }
 
