@@ -1,10 +1,10 @@
 /*
  * Prepinfo --- handle node and menu ordering in a texinfo document.
- * Copyright (c) 1989, Arnold David Robbins, arnold@skeeve.atl.ga.us
+ * Copyright (c) 1989, 1992, Arnold David Robbins, arnold@skeeve.atl.ga.us
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 1, or (at your option) any later
+ * Software Foundation; either version 2, or (at your option) any later
  * version.
  *
  * This program is distributed in the hope that it will be useful, but
@@ -54,7 +54,9 @@
  * Notes: The array could just be sorted by line number, which makes the
  * second pass looking-up easeier. However, as an extension, prepinfo could
  * scan for @xref and @pxref, and fill in the additional textual arguents
- * using the title info from the @chapter and @section.
+ * using the title info from the @chapter and @section.  (1992: We now have
+ * separate awk and C programs for this.  It will probably not be added
+ * to prepinfo.)
  *
  * For this program to work, with the execption of the first node, EVERY
  * title must have a node associated with it.  For TeX's purposes, the nodes
@@ -86,16 +88,24 @@
  * produced from scratch.  The existing menus merely act as a place holder
  * to signal where the menus go.
  *
- * TODO:
- *	Switch to GNU readline.
+ * TODO SOON:
+ *	Update to understand the @top command that goes with Top nodes.
+ *	Fix to produce the main menu too, which has entries for all nodes.
+ *	Add code to do better formatting of menus.
+ *
+ * TODO EVENTUALLY:
  *	If stdin is pipe, save input in a temp file.
  *	Add an option to leave the menus alone.
  *	Add an option for an output file.
  *	Read input from multiple command line files.
+ *	Handle texinfo @include files?
  */
 
 #include <stdio.h>
 #include <ctype.h>
+#include <errno.h>
+#include <malloc.h>
+#include <sys/types.h>
 
 /* the "Top" node is special-cased to be level 1, so chapter is 2, etc. */
 
@@ -194,14 +204,11 @@ NODE *np1, *np2;	/* temps */
 int i;
 char *cp1, *cp2;
 
-/*
- * should eventually use gnu readline() for infinite length lines
- */
-char line[BUFSIZ * 2];
-#define getline()	(fgets(line, sizeof line, stdin) != NULL)
+char *line;
 
 char *xmalloc(), *xrealloc();
 char *strsave();
+extern char *getline();
 extern int node_cmp();	/* for qsort(3) */
 extern int menu_cmp();
 extern NODE *getnode();
@@ -213,46 +220,47 @@ extern char *strchr();
 #define exit	myexit
 #endif
 
-main (argc, argv)
+int
+main(argc, argv)
 int argc;
 char **argv;
 {
 	char save;
 
 	/* pass 1 */
-	while (getline ()) {
+	while ((line = getline(stdin, 0)) != NULL) {
 		lineno++;
 		if (line[0] != '@')
 			continue;
-		if (strncmp (line, "@menu", 5) == 0) {
+		if (strncmp(line, "@menu", 5) == 0) {
 			menu();
 			continue;
-		} else if (strncmp (line, "@node", 5) == 0
-		    || strncmp (line, "@c fakenode", 11) == 0) {
+		} else if (strncmp(line, "@node", 5) == 0
+		    || strncmp(line, "@c fakenode", 11) == 0) {
 			num_nodes++;
 			if (num_nodes == 1) {	/* first node is special */
 				save_node();
 				combine(0);
-				curnode -> n_prev = & top;	/* special */
+				curnode->n_prev = & top;	/* special */
 				have_node = 0;
 				continue;
 			}
 			if (have_node) {
 				/* insert previous node in tree with no title */
-				fprintf (stderr,
+				fprintf(stderr,
 					"line %ld: new @node but %s\n", lineno,
 					"no title for previous @node");
-				fprintf (stderr, "text = %s\n", line);
+				fprintf(stderr, "text = %s\n", line);
 				combine(0);
 			} else
 				have_node = 1;
 			save_node();
 		} else if ((cur_title = get_title())) {
 			if (have_title) {
-				fprintf (stderr,
+				fprintf(stderr,
 					"line %ld: new title but %s\n", lineno,
 					"no @node for previous title");
-				fprintf (stderr, "text = %s\n", line);
+				fprintf(stderr, "text = %s\n", line);
 			} else
 				have_title = 1;
 			save_title();
@@ -274,55 +282,55 @@ char **argv;
 	nodes = (NODE **) xmalloc(num_nodes * sizeof(NODE *));
 
 	/* fill the array */
-	flatten (&top);
+	flatten(&top);
 
 	/* sort it */
-	qsort (nodes, num_nodes, sizeof (NODE *), node_cmp);
+	qsort(nodes, num_nodes, sizeof (NODE *), node_cmp);
 
 	/* now do menus */
 	menus = (MENU **) xmalloc(num_menus * sizeof(MENU *));
-	for (i = 0, curmen = firstmen; curmen; curmen = curmen -> m_next, i++)
+	for (i = 0, curmen = firstmen; curmen; curmen = curmen->m_next, i++)
 		menus[i] = curmen;
 
-	qsort (menus, num_menus, sizeof (MENU *), menu_cmp);
+	qsort(menus, num_menus, sizeof (MENU *), menu_cmp);
 	dupmenu();
 
 	link_menu();	/* link menus and nodes */
 
 	/* pass 2 */
 	lineno = 0;
-	while (getline ()) {
+	while ((line = getline(stdin, 0)) != NULL){
 		lineno++;
 		if (line[0] != '@') {
 #ifdef notdef
 			/* add @xref and @pxref here */
 #endif
-			fputs (line, stdout);
+			fputs(line, stdout);
 			continue;
-		} else if (strncmp (line, "@menu", 5) == 0) {
+		} else if (strncmp(line, "@menu", 5) == 0) {
 			do {
-				getline();
+				line = getline(stdin, 0);
 			} while (! end_menu());
 			if (! np1) {
-				fprintf (stderr,
+				fprintf(stderr,
 					"line %d: menu before a node\n",
 					lineno);
 				exit(1);	/* throw up hands */
-			} else if (! np1 -> n_child) {
-				fprintf (stderr,
+			} else if (! np1->n_child) {
+				fprintf(stderr,
 		"line %d: preceding node '%s' has no inferior nodes\n",
-					lineno, np1 -> n_name);
+					lineno, np1->n_name);
 				exit(1);
 			} else
 				dump_menu(np1->n_child);
 			continue;
-		} else if (strncmp (line, "@node", 5) != 0) {
-			fputs (line, stdout);
+		} else if (strncmp(line, "@node", 5) != 0) {
+			fputs(line, stdout);
 			continue;
 		}
 
 		cp1 = line + 5;
-		while (*cp1 && isspace (*cp1))
+		while (*cp1 && isspace(*cp1))
 			cp1++;
 		cp2 = cp1;
 		/* node names CAN have spaces in them */
@@ -345,18 +353,18 @@ char **argv;
 
 	for (i = 0; i < num_menus; i++) {
 		if (! menus[i]->m_dumped) {
-			fprintf (stderr, "no @menu ");
+			fprintf(stderr, "no @menu ");
 			if (menus[i]->m_item)
 				fprintf(stderr, "for item '%s' ",
 					menus[i]->m_item);
-			fprintf (stderr, "for node '%s', ending line %d\n",
+			fprintf(stderr, "for node '%s', ending line %d\n",
 				menus[i]->m_node, menus[i]->m_lineno);
 		}
 	}
 
 	for (i = 0; i < num_nodes; i++) {
 		if (nodes[i]->n_menu == NULL && nodes[i]->n_level >= 2)
-			fprintf (stderr, "no menu item for node '%s' - %s\n",
+			fprintf(stderr, "no menu item for node '%s' - %s\n",
 				nodes[i]->n_name,
 				"one will be generated if possible");
 	}
@@ -366,22 +374,23 @@ char **argv;
 
 /* node_cmp --- compare two nodes by name */
 
-int node_cmp (p1, p2)
+int
+node_cmp(p1, p2)
 NODE **p1, **p2;
 {
-	return strcmp ((*p1)->n_name, (*p2)->n_name);
+	return strcmp((*p1)->n_name, (*p2)->n_name);
 }
 
 /* flatten --- walk the linked lists, filling the nodes array */
 
-flatten (np)
+flatten(np)
 NODE *np;
 {
 	register int i = 0;
 
 	while (np) {
 		nodes[i] = np;
-		np = np -> n_thread;
+		np = np->n_thread;
 		i++;
 	}
 }
@@ -389,7 +398,7 @@ NODE *np;
 /* getnode --- search the nodes array */
 
 NODE *
-getnode (n)
+getnode(n)
 char *n;
 {
 	register int l, m, h, r;
@@ -399,7 +408,7 @@ char *n;
 
 	while (l <= h) {
 		m = (h + l) / 2;
-		r = strcmp (n, nodes[m]->n_name);
+		r = strcmp(n, nodes[m]->n_name);
 		if (r == 0)	/* got it */
 			return nodes[m];
 		else if (r < 0)	/* n < nodes[m] */
@@ -413,7 +422,7 @@ char *n;
 /* get_title --- search the title array */
 
 struct title *
-get_title ()
+get_title()
 {
 	register int l, m, h, r;
 	char save;
@@ -430,7 +439,7 @@ get_title ()
 
 	while (l <= h) {
 		m = (h + l) / 2;
-		r = strcmp (cp1, titles[m].t_text);
+		r = strcmp(cp1, titles[m].t_text);
 		if (r == 0) {	/* got it */
 			ret = &titles[m];
 			break;
@@ -445,7 +454,7 @@ get_title ()
 
 /* save_node --- save the node name and line number */
 
-save_node ()
+save_node()
 {
 	if (line[1] == 'c')	/* @c fakenode ... */
 		cp1 = line + 11;
@@ -476,7 +485,7 @@ save_node ()
 
 /* save_title --- save the title info */
 
-save_title ()
+save_title()
 {
 	int i;
 
@@ -495,15 +504,15 @@ save_title ()
 
 	i = strlen(cp1);
 	if (i > save_title_len) {
-		new_title = xrealloc (new_title, i + 1);
+		new_title = xrealloc(new_title, i + 1);
 		save_title_len = i;
 	}
-	strcpy (new_title, cp1);
+	strcpy(new_title, cp1);
 }
 
 /* combine --- merge node and title info, link in at appropriate place */
 
-combine (have_title)
+combine(have_title)
 int have_title;
 {
 	NODE *np, *np2;
@@ -514,57 +523,57 @@ int have_title;
 	if (have_title) {
 		/* merge to one structure */
 		newnode.n_title = strsave(new_title);
-		newnode.n_level = cur_title -> t_level;
+		newnode.n_level = cur_title->t_level;
 	} else {
 		newnode.n_title = NULL;
-		if (curnode -> n_level)
-			newnode.n_level = curnode -> n_level;	/* best guess */
+		if (curnode->n_level)
+			newnode.n_level = curnode->n_level;	/* best guess */
 		else
 			newnode.n_level = 1;
 	}
 
 	/* alloc new node and copy */
 	np = (NODE *) xmalloc(sizeof(NODE));
-	np -> n_title = newnode.n_title;
-	np -> n_level = newnode.n_level;
-	np -> n_name = newnode.n_name;
-	np -> n_lineno = newnode.n_lineno;
+	np->n_title = newnode.n_title;
+	np->n_level = newnode.n_level;
+	np->n_name = newnode.n_name;
+	np->n_lineno = newnode.n_lineno;
 
-	curnode -> n_thread = np;
+	curnode->n_thread = np;
 
 	/* insert */
 
-	if (np -> n_level == curnode -> n_level) {	/* sibling */
-		curnode -> n_next = np;
-		np -> n_prev = curnode;
-		np -> n_up = curnode -> n_up;
-	} else if (np -> n_level > curnode -> n_level) {	/* child */
-		curnode -> n_child = np;
-		np -> n_up = curnode;
+	if (np->n_level == curnode->n_level) {	/* sibling */
+		curnode->n_next = np;
+		np->n_prev = curnode;
+		np->n_up = curnode->n_up;
+	} else if (np->n_level > curnode->n_level) {	/* child */
+		curnode->n_child = np;
+		np->n_up = curnode;
 		if (num_nodes == 2) {	/* another special case, sigh */
-			curnode -> n_next = np;
-			np -> n_prev = curnode;
+			curnode->n_next = np;
+			np->n_prev = curnode;
 		}
-		if (np -> n_level != (curnode -> n_level + 1)) {
-			fprintf (stderr,
+		if (np->n_level != (curnode->n_level + 1)) {
+			fprintf(stderr,
 		"warning: node %s, at line %d is %d levels too far down\n",
-				np -> n_name, np-> n_lineno,
-				np -> n_level - (curnode -> n_level + 1));
+				np->n_name, np-> n_lineno,
+				np->n_level - (curnode->n_level + 1));
 		}
 
 	} else {	/* np->n_level < curnode->n_level: ancestor's sibling */
-		np2 = curnode -> n_up;
+		np2 = curnode->n_up;
 
 		/* go to correct ancestor's level, e.g. subsection to chapter */
-		while (np2 -> n_level > np -> n_level)
-			np2 = np2 -> n_up;
+		while (np2->n_level > np->n_level)
+			np2 = np2->n_up;
 
 		/* now to end of list of siblings */
-		while (np2 -> n_next)
-			np2 = np2 -> n_next;
-		np2 -> n_next = np;
-		np -> n_prev = np2;
-		np -> n_up = np2 -> n_up;
+		while (np2->n_next)
+			np2 = np2->n_next;
+		np2->n_next = np;
+		np->n_prev = np2;
+		np->n_up = np2->n_up;
 	}
 
 	curnode = np;
@@ -572,33 +581,34 @@ int have_title;
 
 /* printnode --- actually print an @node statement */
 
-printnode (np)
+printnode(np)
 NODE *np;
 {
 	static char blank[] = " ";
 
 	if (! np) {
-		fprintf (stderr, "printnode: can't happen: np == NULL\n");
+		fprintf(stderr, "printnode: can't happen: np == NULL\n");
 		exit(1);
 	}
-	printf ("@node %s, ", np -> n_name);
-	printf ("%s, ", np -> n_next ? np -> n_next -> n_name : blank);
+	printf("@node %s, ", np->n_name);
+	printf("%s, ", np->n_next ? np->n_next->n_name : blank);
 	/*
 	 * It's not clear in the manual, but makeinfo wants the UP node
 	 * for the PREV field if there is no PREV node.
 	 */
-	printf ("%s, ", np -> n_prev ? np -> n_prev -> n_name :
-				np -> n_up ? np -> n_up -> n_name :
+	printf("%s, ", np->n_prev ? np->n_prev->n_name :
+				np->n_up ? np->n_up->n_name :
 				blank);
-	printf ("%s\n", np -> n_up ? np -> n_up -> n_name : blank);
+	printf("%s\n", np->n_up ? np->n_up->n_name : blank);
 }
 
 /* menu_cmp --- compare two menus by name */
 
-int menu_cmp (p1, p2)
+int
+menu_cmp(p1, p2)
 MENU **p1, **p2;
 {
-	int i = strcmp ((*p1)->m_node, (*p2)->m_node);
+	int i = strcmp((*p1)->m_node, (*p2)->m_node);
 
 	if (i)
 		return i;
@@ -615,7 +625,7 @@ link_menu()
 	i = j = 0;
 
 	do {
-		k = strcmp (nodes[i]->n_name, menus[j]->m_node);
+		k = strcmp(nodes[i]->n_name, menus[j]->m_node);
 		if (k == 0) {	/* got one! */
 			nodes[i]->n_menu = menus[j];
 			menus[j]->m_texinode = nodes[i];
@@ -639,7 +649,7 @@ end_menu()
 		cp = line + 4;
 		while (*cp && isspace(*cp))
 			cp++;
-		return (strncmp (cp, "menu", 4) == 0);
+		return (strncmp(cp, "menu", 4) == 0);
 	}
 	return 0;
 }
@@ -656,8 +666,8 @@ menu()
 
 	/* first, read the whole menu into a buffer */
 	while (1) {
-		if (! getline()) {
-			fprintf (stderr, "Unexpected EOF inside menu at line %d\n",
+		if ((line = getline(stdin, 0)) == NULL) {
+			fprintf(stderr, "Unexpected EOF inside menu at line %d\n",
 				lineno);
 			exit(1);
 		}
@@ -673,7 +683,7 @@ menu()
 			menbuf = xrealloc(menbuf, menbufsize + BUFSIZ);
 			menbufsize += BUFSIZ;
 		}
-		strcpy (& menbuf[menbuflen], line);
+		strcpy(& menbuf[menbuflen], line);
 		menbuflen += l;
 	}
 
@@ -688,7 +698,7 @@ menu()
 	while (isspace(*cp))
 		cp++;
 	if (*cp != '*') {
-		curnode -> n_mencom = menbuf;
+		curnode->n_mencom = menbuf;
 		while (*cp && *cp != '*')
 			cp++;
 		if (! *cp) {	/* only comment, geez */
@@ -708,7 +718,7 @@ loop:
 
 	/* at this point, cp had better be a '*' */
 	if (*cp != '*') {
-		fprintf (stderr, "badly formed menu ending line %d\n", lineno);
+		fprintf(stderr, "badly formed menu ending line %d\n", lineno);
 		exit(1);
 	 } else
 		cp++;
@@ -721,25 +731,25 @@ loop:
 	if (curmen == NULL) {	/* first time */
 		curmen = firstmen = (MENU *) xmalloc(sizeof(MENU));
 	} else {
-		curmen -> m_next = (MENU *) xmalloc(sizeof(MENU));
-		curmen = curmen -> m_next;
+		curmen->m_next = (MENU *) xmalloc(sizeof(MENU));
+		curmen = curmen->m_next;
 	}
 
-	curmen -> m_lineno = lineno;
+	curmen->m_lineno = lineno;
 
-	curmen -> m_item = cp;
+	curmen->m_item = cp;
 	while (*cp != ':')
 		cp++;
 	*cp++ = '\0';
 	if (*cp == ':')	{	/* no item, just a node name */
 		cp++;
-		curmen -> m_node = curmen -> m_item;
-		curmen -> m_item = NULL;
+		curmen->m_node = curmen->m_item;
+		curmen->m_item = NULL;
 	} else {
 		while (*cp && isspace(*cp))
 			cp++;
-		curmen -> m_node = cp++;
-		while (*cp && strchr (".,\t\n", *cp) == NULL)
+		curmen->m_node = cp++;
+		while (*cp && strchr(".,\t\n", *cp) == NULL)
 			cp++;
 		*cp++ = '\0';
 	}
@@ -750,7 +760,7 @@ loop:
 		return;
 
 	if (*cp != '*') {	/* comment text */
-		curmen -> m_desc = cp;
+		curmen->m_desc = cp;
 		while (*cp && *cp != '*')
 			cp++;
 		if (*cp == '*') {
@@ -774,25 +784,25 @@ NODE *np;
 {
 	MENU *mp;
 
-	fputs ("@menu\n", stdout);
-	if (np -> n_up -> n_mencom)
-		printf ("%s\n", np -> n_up -> n_mencom);
-	for (; np; np = np -> n_next) {
-		mp = np -> n_menu;
+	fputs("@menu\n", stdout);
+	if (np->n_up->n_mencom)
+		printf("%s\n", np->n_up->n_mencom);
+	for (; np; np = np->n_next) {
+		mp = np->n_menu;
 		if (! mp) {
-			printf ("* %s::\t%s.\n", np -> n_name, np -> n_title);
+			printf("* %s::\t%s.\n", np->n_name, np->n_title);
 			continue;
 		}
-		mp -> m_dumped = 1;
-		if (mp -> m_item)
-			printf ("* %s: %s.", mp -> m_item, np -> n_name);
+		mp->m_dumped = 1;
+		if (mp->m_item)
+			printf("* %s: %s.", mp->m_item, np->n_name);
 		else
-			printf ("* %s::",  np -> n_name);
-		if (mp -> m_desc)
-			printf ("\t%s", mp -> m_desc);
+			printf("* %s::",  np->n_name);
+		if (mp->m_desc)
+			printf("\t%s", mp->m_desc);
 		putchar('\n');
 	}
-	fputs ("@end menu\n", stdout);
+	fputs("@end menu\n", stdout);
 }
 
 /* dupmenu --- see if there are any duplicate node references */
@@ -803,7 +813,7 @@ dupmenu()
 
 	for (i = 0; i < num_menus - 1; i++)
 		if (strcmp(menus[i]->m_node, menus[i+1]->m_node) == 0) {
-			fprintf (stderr,
+			fprintf(stderr,
 		"duplicate menu entries for node '%s', near lines %d and %d\n",
 				menus[i]->m_node,
 				menus[i]->m_lineno,
@@ -813,17 +823,19 @@ dupmenu()
 
 /* xmalloc --- safety checking malloc */
 
+#if 0
 extern char *calloc();		/* used because it zero-fills */
 extern char *realloc();
+#endif
 
 char *
-xmalloc (size)
+xmalloc(size)
 unsigned int size;
 {
 	char *cp;
 
 	if ((cp = calloc(1, size)) == NULL) {
-		fprintf (stderr, "out of memory!\n");
+		fprintf(stderr, "out of memory!\n");
 		exit(1);
 	}
 
@@ -833,16 +845,16 @@ unsigned int size;
 /* xrealloc --- safety checking realloc */
 
 char *
-xrealloc (ptr, size)
+xrealloc(ptr, size)
 char *ptr;
 unsigned int size;
 {
 	char *p;
 
 	if (ptr == NULL)
-		return xmalloc (size);
-	else if ((p = realloc (ptr, size)) == NULL) {
-		fprintf (stderr, "out of memory!\n");
+		return xmalloc(size);
+	else if ((p = realloc(ptr, size)) == NULL) {
+		fprintf(stderr, "out of memory!\n");
 		exit(1);
 	}
 
@@ -852,7 +864,7 @@ unsigned int size;
 /* strsave --- malloc space for a string */
 
 char *
-strsave (s)
+strsave(s)
 char *s;
 {
 	char *p;
@@ -869,14 +881,14 @@ dumpit()
 	int i;
 	static char nil[] = { '\0' };
 
-	fprintf (stderr, "\nnum_nodes = %d\n", num_nodes);
+	fprintf(stderr, "\nnum_nodes = %d\n", num_nodes);
 	for (i = 0; i < num_nodes; i++)
 		fprintf(stderr, "node[%d] <%s><%s><%s><%s>\n", i,
-			nodes[i] -> n_name,
-			nodes[i] -> n_next ? nodes[i] -> n_next -> n_name : nil,
-			nodes[i] -> n_prev ? nodes[i] -> n_prev -> n_name : nil,
-			nodes[i] -> n_up ? nodes[i] -> n_up -> n_name : nil);
-	fprintf (stderr, "\n");
+			nodes[i]->n_name,
+			nodes[i]->n_next ? nodes[i]->n_next->n_name : nil,
+			nodes[i]->n_prev ? nodes[i]->n_prev->n_name : nil,
+			nodes[i]->n_up ? nodes[i]->n_up->n_name : nil);
+	fprintf(stderr, "\n");
 }
 
 #ifdef DEBUG
@@ -891,3 +903,123 @@ int val;
 		abort();	/* drop core */
 }
 #endif
+
+
+/*
+ * This routine hacked by ADR to remove extra code. Based on PD version
+ * by Darcy J.M. Cain.
+ */
+
+/*
+NAME
+	getline
+
+SYNOPSIS
+	char *getline(FILE *fp, int exclusive);
+
+DESCRIPTION
+	Reads a line from the stream given by fp (or from the window given by
+	win in wgetline) and returns a pointer to the string.  There is no
+	length restriction on the returned string.  Space is dynamically
+	allocated for the string as needed.  If the exclusive flag is set then
+	the space won't be reused on the next call.
+
+	When the exclusive flag is set the space is made available to the
+	caller on the same basis as malloc(3).  When finished with the
+	string it should be free'ed.
+
+RETURNS
+	A pointer to the string with the terminating newline is returned
+	if successful or NULL if there was an error or end of file.  Use
+	feof(3) and ferror(3) to find out if it was a file error, memory
+	allocation problem or EOF condition.
+
+AUTHOR
+	D'Arcy J.M. Cain (darcy@druid.UUCP)
+	D'Arcy Cain Consulting
+
+	7/92: Mods by Arnold Robbins, arnold@skeeve.atl.ga.us
+
+CAVEATS
+	This function is in the public domain.
+CHANGES
+	Arnold Robbins, arnold@skeeve.atl.ga.us.
+	Nuke the curses stuff.
+	Sun Jun 28 22:45:52 EDT 1992
+	Make it keep the newline.
+	Nuke the xgetline stuff.
+	Sun Jul 19 00:48:13 EDT 1992
+*/
+
+/* I originally was going to use 80 here as the most common case but */
+/* decided that a few extra bytes to save a malloc from time to time */
+/* would be a better choice.  Comments welcome.  */
+#define		CHUNK	128
+
+
+#ifndef	__STDC__
+char	*getline(fp, exclusive)
+FILE	*fp;
+int		exclusive;
+#else
+char	*getline(FILE *fp, int exclusive)
+#endif
+{
+	static char	*buf = NULL;
+	size_t	sz = CHUNK;		/* this keeps track of the current size of buffer */
+	size_t	i = 0;			/* index into string tracking current position */
+	char	*ptr;			/* since we may set buf to NULL before returning */
+	int		c;				/* to store getc return */
+
+	/* start out with buf set to CHUNK + 2 bytes */
+	/* note that if this routine was previously called with exclusive */
+	/* set that malloc rather than realloc will be called due to buf */
+	/* being set to NULL in the "if (exclusive) code at end of routine */
+	if (buf == NULL)
+		buf = (char *)(malloc(CHUNK + 2));
+	else
+		buf = (char *)(realloc(buf, CHUNK + 2));
+
+	/* check for memory problem */
+	if (buf == NULL)
+		return(NULL);
+
+	/* get characters from stream until EOF */
+	while ((c = getc(fp)) != EOF)
+	{
+		/* the following needed in case we are in cbreak or raw mode */
+		if (c != '\b')
+			buf[i++] = c;
+		else if (i)
+			i--;
+
+		/* check for buffer overflow */
+		if (i >= sz)
+			if ((buf = (char *)(realloc(buf, (sz += CHUNK) + 2))) == NULL)
+				return(NULL);
+
+		/* ADR --- emulate fgets */
+		if (c == '\n')
+			break;
+	}
+
+	/* is there anything to return? */
+	if (c == EOF && !i)
+	{
+		free(buf);
+		buf = NULL;
+		return(NULL);
+	}
+
+	buf[i++] = 0;	/* yes I want the ++ */
+
+	/* the realloc may be overkill here in most cases - perhaps it */
+	/* should be moved to the 'if (exclusive)' block */
+	ptr = buf = (char *)(realloc(buf, i));
+
+	/* prevent reuse if necessary */
+	if (exclusive)
+		buf = NULL;
+
+	return(ptr);
+}

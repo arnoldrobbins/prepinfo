@@ -1,3 +1,9 @@
+1992-07-28         Arnold D. Robbins     <arnold@skeeve.atl.ga.us>
+
+	* prepinfo.c: Update copyright year, GPL version to GPL 2.
+	More comments. Cleaner formatting. Switch to public domain
+	getline() which reads infinitely long lines.
+
 1989-09-05         Arnold D. Robbins     <arnold@skeeve.atl.ga.us>
 
 	* prepinfo.c: Improve commentary in the comments, including
