@@ -1,6 +1,6 @@
 #! /usr/local/bin/gawk -f
 
-# prepinfo.awk --- do in < 300 lines of awk what takes > 1000 lines of C
+# prepinfo.awk --- correct node lines and build menus
 
 BEGIN	\
 {
@@ -9,23 +9,23 @@ BEGIN	\
 	FALSE = 0
 
 	# Levels at which different nodes can be
-	Level["@top"] =	0
+	Level["@top"] = 0
 	Level["@appendix"] = 1
 	Level["@chapter"] = 1
 	Level["@majorheading"] = 1
 	Level["@unnumbered"] = 1
 	Level["@appendixsec"] = 2
-	Level["@heading"] = 2
 	Level["@section"] = 2
+	Level["@heading"] = 2
 	Level["@unnumberedsec"] = 2
 	Level["@unnumberedsubsec"] = 3
 	Level["@appendixsubsec"] = 3
-	Level["@subheading"] = 3
 	Level["@subsection"] = 3
-	Level["@appendixsubsubsec"] = 4
-	Level["@subsubheading"] = 4
-	Level["@subsubsection"] = 4
+	Level["@subheading"] = 3
 	Level["@unnumberedsubsubsec"] = 4
+	Level["@appendixsubsubsec"] = 4
+	Level["@subsubsection"] = 4
+	Level["@subsubheading"] = 4
 
 	# Length of menus
 	Menumargin = 78
@@ -35,7 +35,7 @@ BEGIN	\
 
 	# insure that we were called correctly
 	if (ARGC != 2) {
-		printf("usage: %s texinfo-file\n", ARGV[0]) > "/dev/stderr"
+		printf("usage %s texinfo-file > new-file\n", ARGV[0]) > "/dev/stderr"
 		exit 1
 	}
 
@@ -44,18 +44,19 @@ BEGIN	\
 	ARGV[2] = "Pass=2"
 	ARGV[3] = ARGV[1]
 	ARGC = 4
-	Lastlevel = -1
 
 	# Initialize stacks
+	Lastlevel = -1
 	Up[-1] = "(dir)"
 	Prev[0] = "(dir)"
 
-	if (Debug == "args") {
+	if (Debug ~ "args") {
 		for (i = 0; i < ARGC; i++)
 			printf("ARGV[%d] = %s\n", i, ARGV[i]) > "/dev/stderr"
 	}
 }
 
+# @node lines, save nodename
 $1 == "@node"	\
 {
 	Name = getnodename($0)
@@ -64,7 +65,7 @@ $1 == "@node"	\
 	if ((l = length(Name)) > Maxlen)
 		Maxlen = l
 
-	if (Debug == "nodenames")
+	if (Debug ~ "nodenames")
 		printf("Name = %s\n", Name) > "/dev/stderr"
 
 	if (Pass == 1)
@@ -73,24 +74,25 @@ $1 == "@node"	\
 
 Pass == 1 && /^@c(omment)?[ \t]+fakenode/ \
 {
-	if (Debug == "fakenodes")
+	if (Debug ~ "fakenodes")
 		printf("fakenode at %d\n", FNR) > "/dev/stderr"
 	Fakenode = TRUE
 	next
 }
 
+# build the tree of nodes in associative array `Node'
 Pass == 1 && ($1 in Level)	\
 {
 	# skip fake nodes --- titles without associated @node lines
 	if (Fakenode) {
-		if (Debug == "fakenodes")
+		if (Debug ~ "fakenodes")
 			printf("%s at %d is a fakenode\n", $1, FNR) > "/dev/stderr"
 		Fakenode = FALSE
 		next
 	}
 
-	if (Debug == "titles")
-		printf("Processing %s: Name = %s\n", $1, Name) > "/dev/stderr"
+	if (Debug ~ "titles")
+		prnitf("Processing %s: Name = %s\n", $1, Name) > "/dev/stderr"
 
 	# save type
 	type = $1
@@ -99,8 +101,6 @@ Pass == 1 && ($1 in Level)	\
 		err_prefix()
 		printf("%s line with no @node or fakenode line\n",
 			type) > "/dev/stderr"
-		Badheading[FNR] = 1
-		# ??? used ???
 		next
 	} else
 		Nodeseen = FALSE	# reset it
@@ -109,7 +109,7 @@ Pass == 1 && ($1 in Level)	\
 	levelnum = Level[type]
 	Node[Name ".level"] = levelnum
 	Node[Name ".name"] = Name
-	if (Debug == "titles") {
+	if (Debug ~ "titles") {
 		printf("Node[%s\".level\"] = %s\n", Name, Node[Name ".level"]) > "/dev/stderr"
 		printf("Node[%s\".name\"] = %s\n", Name, Node[Name ".name"]) > "/dev/stderr"
 	}
@@ -121,7 +121,7 @@ Pass == 1 && ($1 in Level)	\
 			Node[Name ".prev"] = Prev[levelnum]
 		}
 		Prev[levelnum] = Name
-		Up[levelnum] = Name	# ???
+		Up[levelnum] = Name
 	} else if (levelnum < Lastlevel) {	# section, now chapter
 		Lastlevel = levelnum
 		Node[Name ".up"] = Up[levelnum - 1]
@@ -134,42 +134,42 @@ Pass == 1 && ($1 in Level)	\
 	} else {		# chapter, now section, levelnum > Lastlevel
 		Node[Name ".up"] = Up[levelnum - 1]
 		Node[Up[Lastlevel] ".child"] = Name
-		Up[levelnum] = Name
 		Prev[levelnum] = Name
+		Up[levelnum] = Name
 		Lastlevel = levelnum
 	}
 
 	# For master menu
 	if (Level[$1] >= 2)
-		List[++Sequence] = Name
+		List[++Sequence] = Name	# store nodes sequentially
 
-	if (Debug == "titles") {
+	if (Debug ~ "titles") {
 		printf("Node[%s\".prev\"] = %s\n", Name, Node[Name ".prev"]) > "/dev/stderr"
 		printf("Node[%s\".up\"] = %s\n", Name, Node[Name ".up"]) > "/dev/stderr"
 		printf("Node[%s\".child\"] = %s\n", Name, Node[Name ".child"]) > "/dev/stderr"
 	}
 }
 
-Pass == 2 && Debug == "dumptitles" && FNR <= 1	\
+Pass == 2 && Debug ~ "dumptitles" && FNR <= 1	\
 {
 	for (i in Node)
 		printf("Node[%s] = %s\n", i, Node[i]) | "sort 1>&2"
 	close("sort 1>&2")
 }
 
-/^@menu/ && Pass == 1, /^@end[ \t]+menu/ && Pass == 1	\
+/^@menu/ && Pass == 1, /^@end[ \t]menu/ && Pass == 1	\
 {
-	if (/^@menu/ || /^@end[ \t]+menu/)
+	if (/^@menu/ || /^@end[ \t]menu/)
 		next
 
-#	if (Debug == "menu")
+#	if (Debug ~ "menu")
 #		printf("processing: %s\n", $0) > "/dev/stderr"
 
 	if (/^\*/) {
-		if (In_menitem) {	# file away info from previousline
+		if (In_menitem) {	# file away from previous line
 			Node[node ".mendesc"] = desc
 			Node[node ".longdesc"] = longdesc
-			if (Debug == "mendesc") {
+			if (Debug ~ "mendesc") {
 				printf("Node[%s.mendesc] = %s\n",
 					node, Node[node ".mendesc"]) > "/dev/stderr"
 				printf("Node[%s.longdesc] = %s\n",
@@ -187,7 +187,7 @@ Pass == 2 && Debug == "dumptitles" && FNR <= 1	\
 			printf("badly formed menu item") > "/dev/stderr"
 			next
 		}
-		if (substr($0, i1+1, 1) != ":") { # desc: node.  long desc
+		if (substr($0, i1+1, 1) != ":") { # desc: node.   long desc
 			i2 = index($0, ".")
 			if (i2 <= 0) {
 				err_prefix()
@@ -195,10 +195,13 @@ Pass == 2 && Debug == "dumptitles" && FNR <= 1	\
 				next
 			}
 			desc = substr($0, 1, i1 - 1)
+			node = substr($0, i1+1, i2 - i1 - 1)
 			sub(/^[ \t]+/, "", node)
 			sub(/[ \t]+$/, "", node)
+			sub(/^[ \t]+/, "", desc)
+			sub(/[ \t]+$/, "", desc)
 			longdesc = substr($0, i2 + 1)
-		} else {	# nodname:: long desc
+		} else {	# nodename:: long desc
 			desc = ""
 			node = substr($0, 1, i1 - 1)
 			sub(/^[ \t]+/, "", node)
@@ -212,16 +215,17 @@ Pass == 2 && Debug == "dumptitles" && FNR <= 1	\
 
 	Node[node ".mendesc"] = desc
 	Node[node ".longdesc"] = longdesc
-	if (Debug == "mendesc") {
+	if (Debug ~ "mendesc") {
 		printf("Node[%s.mendesc] = %s\n",
 			node, Node[node ".mendesc"]) > "/dev/stderr"
 		printf("Node[%s.longdesc] = %s\n",
 			node, Node[node ".longdesc"]) > "/dev/stderr"
 	}
 
-	if (Debug == "menu")
+	if (Debug ~ "menu") {
 		printf("Menu:: Name %s: desc %s: longdesc %s\n",
 			node, desc, longdesc) > "/dev/stderr"
+	}
 }
 
 function err_prefix()
@@ -231,13 +235,14 @@ function err_prefix()
 
 function getnodename(str)
 {
-	sub(/@node[ \t]+/, "", str)
-	sub(/,.*/, "", str)
-	if (Debug == "nodenames")
+	sub(/^@node[ \t]+/, "", str)
+	sub(/[ \t]*,.*/, "", str)
+	if (Debug ~ "nodenames")
 		printf("getnodename: return %s\n", str) > "/dev/stderr"
 	return str
 }
 
+# print @node line
 Pass == 2 && /^@node/	\
 {
 	Name = getnodename($0)
@@ -253,16 +258,17 @@ Pass == 2 && /^@node/	\
 	next
 }
 
+# print menu for current node
 Pass == 2 && /^@menu/	\
 {
-	# First, nuke current contents of menu
+	# First, skip current contents of menu
 	do {
 		if ((getline) <= 0) {
 			err_prefix()
 			printf("unexpected EOF inside menu\n") > "/dev/stderr"
 			exit 1
 		}
-	} while (! /^@end[ \t]+menu/)
+	} while (! /^@end[ \t]menu/)
 
 	# next, compute maximum length of a node name
 	max = 0
@@ -284,7 +290,6 @@ Pass == 2 && /^@menu/	\
 	for (n = Node[Name ".child"]; (n ".next") in Node; n = Node[n ".next"]) {
 		print_menuitem(n, max)
 	}
-	print_menuitem(n, max)
 
 	if (Name == "Top") {	# Master Menu
 		if (Maxlen < Min_menitem_length)
@@ -300,11 +305,11 @@ Pass == 2 && /^@menu/	\
 
 Pass == 2	# print
 
-
+# print nice description with reformatting as needed
 function print_menuitem(n, max,		nodesc, i, dwords, count, p)
 {
 	nodesc = FALSE
-	if (! ((n ".longdesc") in Node)) {
+	if (! (n ".longdesc") in Node) {
 		err_prefix()
 		printf("warning: %s: no long description\n", n) > "/dev/stderr"
 		nodesc = TRUE
@@ -319,7 +324,7 @@ function print_menuitem(n, max,		nodesc, i, dwords, count, p)
 		s = n "::"
 	printf("* %-*s", max, s)
 
-	if (Debug == "mendescitem")
+	if (Debug ~ "mendescitem")
 		printf("<* %-*s>\n", max, s) > "/dev/stderr"
 
 	p = max + 2
