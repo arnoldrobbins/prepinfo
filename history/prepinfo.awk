@@ -61,8 +61,14 @@ $1 == "@node"	\
 	Name = getnodename($0)
 	Nodeseen = TRUE
 
+	if ((l = length(Name)) > Maxlen)
+		Maxlen = l
+
 	if (Debug == "nodenames")
 		printf("Name = %s\n", Name) > "/dev/stderr"
+
+	if (Pass == 1)
+		next
 }
 
 Pass == 1 && /^@c(omment)?[ \t]+fakenode/ \
@@ -132,6 +138,11 @@ Pass == 1 && ($1 in Level)	\
 		Prev[levelnum] = Name
 		Lastlevel = levelnum
 	}
+
+	# For master menu
+	if (Level[$1] >= 2)
+		List[++Sequence] = Name
+
 	if (Debug == "titles") {
 		printf("Node[%s\".prev\"] = %s\n", Name, Node[Name ".prev"]) > "/dev/stderr"
 		printf("Node[%s\".up\"] = %s\n", Name, Node[Name ".up"]) > "/dev/stderr"
@@ -274,6 +285,15 @@ Pass == 2 && /^@menu/	\
 		print_menuitem(n, max)
 	}
 	print_menuitem(n, max)
+
+	if (Name == "Top") {	# Master Menu
+		if (Maxlen < Min_menitem_length)
+			Maxlen = Min_menitem_length
+		print ""
+		for (i = 1; i <= Sequence; i++)
+			print_menuitem(List[i], Maxlen)
+		print ""
+	}
 	print "@end menu"
 	next
 }
