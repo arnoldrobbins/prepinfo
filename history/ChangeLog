@@ -1,3 +1,8 @@
+1997-06-18         Arnold D. Robbins     <arnold@skeeve.atl.ga.us>
+
+	* prepinfo.awk: Improve usage message.
+	(print_menuitem): Restore necessary parenthesis in `if .. in' test.
+
 1997-01-23         Arnold D. Robbins     <arnold@skeeve.atl.ga.us>
 
 	* prepinfo.awk: Use ~ for debug instead of ==. Add many

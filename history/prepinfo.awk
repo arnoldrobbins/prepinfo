@@ -35,7 +35,7 @@ BEGIN	\
 
 	# insure that we were called correctly
 	if (ARGC != 2) {
-		printf("usage %s texinfo-file > new-file\n", ARGV[0]) > "/dev/stderr"
+		printf("usage: %s texinfo-file > new-file\n", ARGV[0]) > "/dev/stderr"
 		exit 1
 	}
 
@@ -309,7 +309,7 @@ Pass == 2	# print
 function print_menuitem(n, max,		nodesc, i, dwords, count, p)
 {
 	nodesc = FALSE
-	if (! (n ".longdesc") in Node) {
+	if (! ((n ".longdesc") in Node)) {
 		err_prefix()
 		printf("warning: %s: no long description\n", n) > "/dev/stderr"
 		nodesc = TRUE
