@@ -1,3 +1,12 @@
+2001-01-21         Arnold D. Robbins     <arnold@gnu.org>
+
+	* prepinfo.awk: Remove #! line. Update email address. Hardwire
+	program name instead of ARGV[0]. Skip lines between `@ignore'
+	and `@end ignore'. Same for `@detailmenu' and `@end detailmenu'.
+	Use `@detailmenu' when printing the master menu.
+	(print_menuitem): Remove manual deletion of contents of `dwords'
+	array; split() does this for us.
+
 1997-07-09         Arnold D. Robbins     <arnold@gnu.ai.mit.edu>
 
 	* prepinfo.awk: Add copyright statement.  Lots of editing in

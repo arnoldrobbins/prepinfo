@@ -1,24 +1,23 @@
-#! /usr/local/bin/gawk -f
-
 # prepinfo.awk --- correct node lines and build menus
 
 # Copyright (C) 1997 Arnold David Robbins
-#                    (arnold@gnu.ai.mit.edu)
-# 
+#                    (arnold@gnu.org)
+#
 # PREPINFO is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either
 # version 2 of the License, or (at your option) any later
 # version.
-# 
+#
 # PREPINFO is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+
 BEGIN    \
 {
     # manifest constants
@@ -51,8 +50,8 @@ BEGIN    \
 
     # Ensure that we were called correctly
     if (ARGC != 2) {
-        printf("usage: %s texinfo-file > new-file\n",
-                       ARGV[0]) > "/dev/stderr"
+        print "usage: prepinfo texinfo-file > new-file\n" \
+	              > "/dev/stderr"
         exit 1
     }
     # Arrange for two passes over input file
@@ -73,8 +72,7 @@ BEGIN    \
 }
 function err_prefix()
 {
-    printf("%s:%s:%d: ", ARGV[0], FILENAME,
-                            FNR) > "/dev/stderr"
+    printf("prepinfo:%s:%d: ", FILENAME, FNR) > "/dev/stderr"
 }
 
 function getnodename(str)
@@ -85,6 +83,9 @@ function getnodename(str)
         printf("getnodename: return %s\n",
                             str) > "/dev/stderr"
     return str
+}
+/^@ignore/ && Pass == 1, /^@end[ \t]+ignore/ && Pass == 1 {
+    next
 }
 # @node lines, save nodename
 $1 == "@node"    \
@@ -199,11 +200,14 @@ Pass == 2 && Debug ~ "dumptitles" && FNR <= 1    \
     if (/^@menu/ || /^@end[ \t]menu/)
         next
 
+    if (/^@detailmenu/ || /^@end[ \t]+detailmenu/)
+        next
+
 #    if (Debug ~ "menu")
 #        printf("processing: %s\n", $0) > "/dev/stderr"
 
     if (/^\*/) {
-        if (In_menitem) {  # File away from previous line
+        if (In_menitem) {  # Save info from previous line
             Node[node ".mendesc"] = desc
             Node[node ".longdesc"] = longdesc
             if (Debug ~ "mendesc") {
@@ -323,9 +327,10 @@ Pass == 2 && /^@menu/    \
         if (Maxlen < Min_menitem_length)
             Maxlen = Min_menitem_length
         print ""
+        print "@detailmenu"
         for (i = 1; i <= Sequence; i++)
             print_menuitem(List[i], Maxlen)
-        print ""
+        print "@end detailmenu"
     }
     print "@end menu"
     next
@@ -342,12 +347,9 @@ function print_menuitem(n, max,    # params
         printf("warning: %s: no long description\n",
                           n) > "/dev/stderr"
         nodesc = TRUE
-    } else {
-        for (i in dwords)
-            delete dwords[i]
-        count = split(Node[n ".longdesc"], dwords,
-                      "[ \t\n]+")
-    }
+    } else
+        count = split(Node[n ".longdesc"], dwords, " ")
+
     if ((n ".desc") in Node)
         s = Node[n ".desc"] ": " n "."
     else
