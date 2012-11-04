@@ -1,4 +1,4 @@
-#! /usr/local/bin/gawk -f
+#! /usr/bin/gawk -f
 
 # prepinfo.awk --- do in < 300 lines of awk what takes > 1000 lines of C
 
@@ -166,6 +166,9 @@ Pass == 2 && Debug == "dumptitles" && FNR <= 1	\
 	if (/^@menu/ || /^@end[ \t]+menu/)
 		next
 
+	if (/^@detailmenu/ || /^@end[ \t]+detailmenu/)
+		next
+
 #	if (Debug == "menu")
 #		printf("processing: %s\n", $0) > "/dev/stderr"
 
@@ -294,9 +297,10 @@ Pass == 2 && /^@menu/	\
 		if (Maxlen < Min_menitem_length)
 			Maxlen = Min_menitem_length
 		print ""
+		print "@detailmenu"
 		for (i = 1; i <= Sequence; i++)
 			print_menuitem(List[i], Maxlen)
-		print ""
+		print "@end detailmenu"
 	}
 	print "@end menu"
 	next

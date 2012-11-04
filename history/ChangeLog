@@ -1,3 +1,9 @@
+2012-11-04         Arnold D. Robbins     <arnold@skeeve.com>
+
+	* prepinfo.awk: Add texinfo @detailmenu commands for the
+	master menu, and skip input lines in the detailed menu.
+	Changed the path in the #! line.
+
 2000-09-05         Arnold D. Robbins     <arnold@skeeve.com>
 
 	* prepinfo.awk: Starting from version of 1993-06-06. Add
