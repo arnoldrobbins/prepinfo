@@ -1,0 +1,21 @@
+Tue Nov  7 20:44:42 IST 2017
+============================
+
+This branch represents a parallel line of development to
+the main branch.  I don't know exactly how that happened. :-(
+
+The dates used are the ones in my filesystem, but they're clearly
+weird; in particular I doubt that it was as late as 2012 that
+I added handling of @detailmenu.
+
+I decided that the best way to represent this parallel line was
+to put it in to a separate branch.
+
+Dates from my filesystem:
+
+1993-06-06:	Third version of the script
+1998-11-15:	Same + copyright. This was released with Texinfo.
+2000-09-05:	Third version, no copyright, added @ignore handling.
+2012-11-04:	Same + handling of @detailmenu.
+
+See also the README.md file in this directory.
