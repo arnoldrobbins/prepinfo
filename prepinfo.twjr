@@ -1,0 +1,1686 @@
+\input texinfo   @c -*-texinfo-*-
+@c vim: filetype=texinfo tabstop=4 shiftwidth=4
+@c %**start of header (This is for running Texinfo on a region.)
+@setfilename prepinfo.info
+@settitle Prepinfo: A Program To Organize Texinfo Files
+@c %**end of header (This is for running Texinfo on a region.)
+
+@c Change how xref titles are quoted.
+@dquotexrefs
+@c And let braces in index entries work.
+@allowindexbraces
+@ifclear FORPRINT
+@pdflinkcolor
+@urllinkcolor
+@hideurls
+@end ifclear
+
+@c The following information should be updated here only!
+@c This sets the edition of the document.
+
+@c These apply across the board.
+@set UPDATE-MONTH November, 2017
+@set EDITION 0.95
+
+@set TITLE Prepinfo: A Program To Organize Texinfo Files
+@set SHORTTITLE The @code{prepinfo} Program
+
+@iftex
+@set DOCUMENT book
+@set CHAPTER chapter
+@set APPENDIX appendix
+@set SECTION section
+@set SUBSECTION subsection
+@end iftex
+@ifhtml
+@set DOCUMENT Web page
+@set CHAPTER chapter
+@set APPENDIX appendix
+@set SECTION section
+@set SUBSECTION subsection
+@end ifhtml
+@ifinfo
+@set DOCUMENT Info file
+@set CHAPTER major node
+@set APPENDIX major node
+@set SECTION minor node
+@set SUBSECTION node
+@end ifinfo
+@ifdocbook
+@set DOCUMENT book
+@set CHAPTER chapter
+@set APPENDIX appendix
+@set SECTION section
+@set SUBSECTION subsection
+@end ifdocbook
+
+@c some special symbols
+@ifnottex
+@macro ii{text}
+@i{\text\}
+@end macro
+@end ifnottex
+
+@c merge the function and variable indexes into the concept index
+@c do so without the code font, and in the index entries do the
+@c font management ourselves.  Also merge in the chunk definition
+@c and reference entries, which jrweave creates for us.
+@ifnothtml
+@synindex fn cp
+@synindex vr cp
+@synindex cd cp
+@synindex cr cp
+@end ifnothtml
+
+@c If "finalout" is commented out, the printed output will show
+@c black boxes that mark lines that are too long.  Thus, it is
+@c unwise to comment it out when running a master in case there are
+@c overfulls which are deemed okay.
+
+@iftex
+@finalout
+@end iftex
+
+@copying
+@docbook
+<para>Published by:</para>
+
+<literallayout class="normal">Arnold David Robbins
+P.O. Box 354
+Nof Ayalon
+D.N. Shimshon 9978500
+ISRAEL
+
+Email: <email>arnold@@skeeve.com</email>
+URL: <ulink url="http://www.skeeve.com/">http://www.skeeve.com/</ulink></literallayout>
+
+<literallayout class="normal">Copyright &copy; 1997, 2001, 2018
+Arnold David Robbins
+All Rights Reserved.</literallayout>
+@end docbook
+
+@ifnotdocbook
+Copyright @copyright{} 1997, 2001, 2018 @*
+Arnold David Robbins @*
+All Rights Reserved.
+@end ifnotdocbook
+@sp 1
+The PREPINFO program is copyright
+@copyright{} 1997, 2001, 2018 by Arnold David Robbins. It is published under
+the conditions of the GNU General Public License, version 3.
+@sp 2
+This is Edition @value{EDITION} of @cite{@value{TITLE}}.
+@end copying
+
+@c Uncomment this for the release.  Leaving it off saves paper
+@c during editing and review.
+@c @setchapternewpage odd
+
+@c Uncomment this if it's ever printed as a real book(let).
+@c @shorttitlepage @value{SHORTTITLE}
+
+@titlepage
+@title @value{TITLE}
+@subtitle @value{UPDATE-MONTH}
+@author Arnold D. Robbins
+
+@ifnotdocbook
+@c Include the Distribution inside the titlepage environment so
+@c that headings are turned off.  Headings on and off do not work.
+
+@page
+@vskip 0pt plus 1filll
+Published by:
+@sp 1
+Arnold David Robbins @*
+P.O. Box 354 @*
+Nof Ayalon @*
+D.N. Shimshon 9978500 @*
+ISRAEL @*
+
+Email: @EMAIL{arnold@@skeeve.com,arnold AT skeeve.com} @*
+URL: @url{http://www.skeeve.com/} @*
+
+@insertcopying
+@end ifnotdocbook
+@end titlepage
+
+@ignore
+@set DRAFT @i{DRAFT}
+
+@iftex
+@headings off
+@evenheading @thispage @| @value{DRAFT} @| @strong{@value{SHORTTITLE}}
+@oddheading  @strong{@thischapter} @| @value{DRAFT} @| @thispage
+@end iftex
+@end ignore
+
+@ifnottex
+@ifnotdocbook
+@ifnotxml
+@node Top
+@top General Introduction
+@c Preface node should come right after the Top
+@c node, in `unnumbered' sections, then the introductory chapter.
+@c Licensing nodes are appendices, they're not central to TexiWebJr.
+
+This file documents PREPINFO, a program that prepares Texinfo files
+for processing by @command{makeinfo}.
+
+@insertcopying
+@end ifnotxml
+@end ifnotdocbook
+@end ifnottex
+
+@menu
+* Preface::                     Some initial words.
+* Texinfo Introduction::        Introducing the Texinfo markup language.
+* What prepinfo does::          The goal of our program.
+* Prepinfo Initialization::     Initialization steps.
+* Prepinfo Support::            Some support functions.
+* Gathering Node Info::         Collecting node information.
+* Printing Updated Info::       Printing nodes and menus.
+* Summary::                     Summarizing the interesting points.
+* Legal Stuff::                 The copyright information.
+* Debug Chunks::                The debugging bits.
+* Code Chunk Summaries::        Chunk defined/referenced information.
+* Concept Index::               The index.
+
+@detailmenu
+* Audience::                    Who should read this @value{DOCUMENT}.
+* Overview::                    An overview of the @value{DOCUMENT}.
+* Conventions::                 Typographical conventions.
+* Manifest constants::          The various constants needed.
+* Menu variables::              Variables for menu information.
+* Check argument count::        Error checking.
+* Setting up two passes::       Setting up two passes.
+* Tracking our place::          Tracking our place in the tree.
+* Skipping ignored lines::      Skipping lines that start with @@ignore.
+* Save the node name::          Saving the node name.
+* Fakenodes::                   Handling titles without nodes lines.
+* Finding chapters etc::        Finding chapters, sections, and so on.
+* Updating links::              Updating links within the data structures.
+* Equal levels::                Current level is the same as previous.
+* Current less than previous::  Current level is higher up than previous.
+* Current greater than previous:: Current level is lower down than previous.
+* Gathering Menu Info::         Collecting info about menus.
+* Print node lines::            Printing @@node lines.
+* Printing menus::              Printing menus.
+* Printing menu items::         Formatting and printing menu items.
+* Pass everything else on::     Passing everything else on through.
+* File Definitions::            Source files by definition.
+* Code Chunk Definitions::      Code chunks by definition.
+* Code Chunk References::       Code chunks by reference.
+@end detailmenu
+@end menu
+
+@c @summarycontents
+@contents
+
+@c Add these to the menu if they ever get included.
+@c @node Foreword
+@c @unnumbered Foreword
+
+@node Preface
+@unnumbered Preface
+
+This @value{DOCUMENT} describes an @command{awk} program that
+I wrote a long time ago, and which has been invaluable to me
+for close to two decades(!).
+
+In 2001, I documented it hoping to include it in @cite{Effective
+AWK Programming} (the @command{gawk} documentation), but it
+ended up being too long a section and wasn't included.
+
+In 2015, I created the
+@uref{https://github.com/arnoldrobbins/texiwebjr,
+@sc{TexiWebJr.@:}} super
+simple literate programming
+system, and it occurred to me that this would make a great way
+to adopt that document for standalone presentation.
+
+So, without further ado @dots{}
+
+@menu
+* Audience::                    Who should read this @value{DOCUMENT}.
+* Overview::                    An overview of the @value{DOCUMENT}.
+* Conventions::                 Typographical conventions.
+@end menu
+
+@node Audience
+@unnumberedsec Intended Audience
+
+You should read this document if you're interested in non-trivial
+@command{awk} programs that perform useful text processing tasks.
+
+@node Overview
+@unnumberedsec What Is Covered
+
+@ref{Texinfo Introduction}, provides a brief overview of the
+relevant bits of the Texinfo markup language.  This provides
+the background for the processing done by @command{prepinfo}.
+
+@ref{What prepinfo does}, describes what @command{prepinfo}
+does; that is the result of running the program.
+
+@ref{Prepinfo Initialization}, describes the initialization
+steps taken before processing begins.
+
+@ref{Prepinfo Support}, describes two simple support functions
+used throughout the program.
+
+@ref{Gathering Node Info}, describes how @command{prepinfo}
+collects information about each node in a document.
+
+@ref{Printing Updated Info}, describes how node information
+and menus are printed.
+
+@ref{Summary}, summarizes the interesting aspects of
+the program.
+
+@ref{Legal Stuff}, presents the copyright and licensing
+information for @command{prepinfo}.
+
+@ref{Debug Chunks}, gives the code for the debugging chunks
+used throughout the program.
+
+@ref{Code Chunk Summaries}, provides defined/references information for
+each chunk in the program.
+
+@node Conventions
+@unnumberedsec Typographical Conventions
+
+@c Copied mostly verbatim from the gawk manual.
+
+@cindex Texinfo document formatting language
+This @value{DOCUMENT} is written in an enhanced version of
+@uref{https://www.gnu.org/software/texinfo/, Texinfo},
+the GNU documentation formatting language.
+A single Texinfo source file is used to produce both the printed and online
+versions of a program's documentation.
+@ifnotinfo
+Because of this, the typographical conventions
+are slightly different than in other books you may have read.
+@end ifnotinfo
+
+Examples you would type at the command-line are preceded by the common
+shell primary and secondary prompts, @samp{$} and @samp{>}.  Input that
+you type is shown @kbd{like this}.  Output from the command is preceded
+by the glyph ``@print{}''.  This typically represents the command's
+standard output.  Error messages, and other output on the command's
+standard error, are preceded by the glyph ``@error{}''.  For example:
+
+@example
+$ @kbd{echo hi on stdout}
+@print{} hi on stdout
+$ @kbd{echo hello on stderr 1>&2}
+@error{} hello on stderr
+@end example
+
+@ifnotinfo
+In the text, command names appear in @code{this font}, while code segments
+appear in the same font and quoted, @samp{like this}.  Options look
+like this: @option{-f}.  Some things are emphasized @emph{like this},
+and if a point needs to be made strongly, it is done @strong{like this}.
+The first occurrence of a new term is usually its @dfn{definition} and
+appears in the same font as the previous occurrence of ``definition''
+in this sentence.  Finally, file names are indicated like this:
+@file{/path/to/our/file}.
+@end ifnotinfo
+
+@node Texinfo Introduction
+@chapter A Brief Introduction to Texinfo
+
+@cindex Texinfo
+GNU documentation is written in Texinfo.  Texinfo is a nice
+documentation format. A single input file produces both printed
+documentation using @TeX{} and the online documentation (Info files
+and HTML files).
+This @value{DOCUMENT} was written in it.@footnote{Or rather, a
+version enhanced for literate programming.}
+
+The program presented in this @value{DOCUMENT} processes GNU Texinfo files, automating the
+updating of control information that describes a document's structure.
+
+Texinfo is described in
+complete detail in
+@ifinfo
+@ref{Top, , Introduction, texi, Texinfo---The GNU Documentation Format}.
+@end ifinfo
+@ifnotinfo
+@uref{https://www.gnu.org/software/texinfo/manual/texinfo/,
+@cite{Texinfo---The GNU Documentation Format}}.
+@end ifnotinfo
+Here, we explain how
+Texinfo describes the structure of a document, which should be enough
+information for you to follow the logic of the @command{prepinfo} program.
+
+A Texinfo document is tree structured. See @ref{tree-structure}.
+
+@float Figure,tree-structure
+@caption{A tree-structured document.}
+@example
+@group
+                          Top
+                           |
+        /------------------+------------------\
+        |                  |                  |
+     Chapter 1          Chapter 2          Chapter 3
+        |                  |                  |
+    /---+----\         /---+----\         /---+----\
+    |        |         |        |         |        |
+ Section  Section   Section  Section   Section  Section
+   1.1      1.2       2.1      2.2       3.1      3.2
+@end group
+@end example
+@end float
+
+This figure is adapted from the Texinfo documentation.
+It shows a document with three chapters, each of which has two sections.
+
+The tree structure can go up to four levels deep---chapters, sections,
+subsections and subsubsections.  Each item in the tree is called a @dfn{node}.
+
+Each node has two control lines that define its place in the document.
+The first is the @samp{@@node} line, which indicates the start of a node,
+with the node's name, the names of the next and previous nodes at the
+same level in the tree and then the name of the parent node of the current
+node.
+
+Then there is the ``title'' line that indicates what kind of heading to
+print, such as chapter, section and so on. Besides the regular titles, there are
+versions for unnumbered headings and for appendix titles, sections, subsections
+and so on. For example:
+
+@example
+@@c       Name,       Next,      Previous,  Up
+@@node    Chapter 2,  Chapter 3, Chapter 1, Top
+@@chapter Chapter 2
+@end example
+
+@noindent
+This example shows the @samp{@@node} line for Chapter 2 and
+an @samp{@@chapter} line.
+The line beginning with @samp{@@c} is a comment; it acts as a
+reminder for the correct ordering of items in the @samp{@@node} line.
+
+Each node with subnodes under it contains a @dfn{menu}
+listing the nodes, with a brief description:
+
+@example
+@group
+@@menu
+* Birds::            All about the birds.
+* Bees::             All about the bees.
+* Be Cool. Dating:   How to date and stay cool.
+* Birds and Bees::   What not to talk about with your kids.
+@@end menu
+@end group
+@end example
+
+@noindent
+Menus come at the end of the node, before the @samp{@@node} line for
+the first dependent node.
+
+Menu entries begin with a @samp{*} and can span multiple lines.  There are
+two formats.  The third item shows the long form, with a short
+description, node name and long description.  When the node name and
+short description are the same, then two colons are used.
+
+Menus are supposed to have at least two items. I.e., if there are
+subsections, there should be at least two of them.
+This is a convention that makes for good documentation style; nothing
+in software enforces it.
+
+The @samp{Top} node is the first node in a Texinfo file.
+It is special; its ``next'' node is its first child,
+its ``previous'' and ``up'' nodes are the special node @samp{(dir)},
+which is the entry point for the Info online documentation system.
+
+The @samp{Top} node also has a @dfn{master menu} listing all
+the nodes in the file.
+The master menu lists all the child nodes of the @samp{Top} node and
+then it lists all the nodes of the Texinfo file in sequential order.
+
+Here are some example control lines.  The subsidiary lines are indented
+to show their logical nesting level. In a real Texinfo file, they would
+not be indented.
+
+@example
+@@node Preface, Intro, Top, Top
+@@unnumbered Preface
+
+    @@node History, Manual History, Preface, Preface
+    @@unnumberedsec History of @@code@{awk@} and @@code@{gawk@}
+
+    @@node Manual History, Contributors, History, Preface
+    @@unnumberedsec The GNU Project and This Book
+
+    @@node Contributors, Acknowledgements, Manual History, Preface
+    @@unnumberedsec Major Contributors to @command{gawk}
+
+    @@node Acknowledgements, , Contributors, Preface
+    @@unnumberedsec Acknowledgements
+
+@@node Intro, Getting Started, Preface, Top
+@@chapter Introduction
+
+    @@node This Manual, Conventions, Intro, Intro
+    @@section Using This Book
+
+    @@node Conventions, Basic Concepts, This Manual, Intro
+    @@section Typographical Conventions
+
+    @@node Basic Concepts, , Conventions, What Is Awk
+    @@section Basic Programming Concepts
+@end example
+
+
+@node What prepinfo does
+@chapter Restructuring Texinfo Files
+
+Suppose you are writing a large book in Texinfo, and you end
+up moving many nodes to different chapters, and/or to
+different levels (up or down).  Maintaining all the @samp{@@node}
+lines and the menus by hand is very painful. How could you automate
+this task?
+
+One solution would be to write a 1,200 line C program using lots of linked
+lists. But then try to work with it a year later!@footnote{This is exactly
+what I did, in fact.}
+
+The better solution is to rewrite it in around 300 lines of awk,
+including debugging code!
+
+This @value{DOCUMENT}
+presents an @command{awk} program that reads a Texinfo file,
+determines the structure of the file and then writes out a new version
+with correct @samp{@@node} lines @emph{and} correct menus.@footnote{Texinfo
+no longer requires the structuring information on
+the @samp{@@node} line.  But it's been easier to simply remove it after
+the fact with @command{sed}, than to worry with changing the program.
+I've chosen to leave the presentation and code as I originally wrote
+them, since tracking the input document's structure is what makes the
+program interesting. Updating menus remains an important feature of the program.}
+
+This program demonstrates how @command{awk}'s data-driven nature makes it easier
+to concentrate on the task at hand and not the supporting scaffolding.
+It also demonstrates the power of associative arrays.
+
+This program was written to support development of the @command{gawk}
+documentation, so it was only natural that it be written in @command{awk}.
+It has been included in the Texinfo distribution for a long time.
+
+As an example of what @command{prepinfo} does, consider a Texinfo file with
+the following @samp{@@node} and title lines in it:
+
+@example
+@@node Intro
+@@chapter Introduction
+
+@@node This Manual
+@@section Using This Book
+
+@@node Conventions
+@@section Typographical Conventions
+
+@@node Basic Concepts
+@@section Basic Programming Concepts
+@end example
+
+@noindent
+The output would be:
+
+@example
+@@node Intro, Getting Started, Preface, Top
+@@chapter Introduction
+
+@@node This Manual, Conventions, Intro, Intro
+@@section Using This Book
+
+@@node Conventions, Basic Concepts, This Manual, Intro
+@@section Typographical Conventions
+
+@@node Basic Concepts, , Conventions, What Is Awk
+@@section Basic Programming Concepts
+@end example
+
+(The @samp{Preface} and @samp{What Is Awk} nodes are not shown.)
+The program works in the following steps.
+
+@enumerate 1
+@item
+Initialize all global variables and arrays.  Arrange to make two
+passes over the data, the first to gather information, the second to
+generate the updated version.
+
+@item
+During the first pass, collect information about nodes. In particular,
+determine each node's parent, next and previous siblings, and first child.
+Also gather all the menu information for a node.
+
+@item
+During the second pass, use the gathered information to generate
+updated @samp{@@node} lines and correct menus.
+@end enumerate
+
+This translates to:
+
+@cindex @code{prepinfo.awk} program
+@post_create prepinfo.awk chmod +x prepinfo.awk
+@(prepinfo.awk@)=
+@<Shebang and copyright@>
+@<@code{BEGIN} rule@>
+@<First pass@>
+@<Second pass@>
+@<Helper Functions@>
+@
+
+@node Prepinfo Initialization
+@chapter Initialization
+
+The @code{BEGIN} rule does the initialization.
+
+@<@code{BEGIN} rule@>=
+BEGIN {
+	@<Set up constants@>
+	@<Menu variables@>
+	@<Check argument count@>
+	@<Set up multiple passes@>
+	@<Initialize stacks@>
+	@<DEBUG: Arguments@>
+}
+@
+
+Each of these steps is explained in detail in the
+following @value{SECTION}s.
+
+@menu
+* Manifest constants::          The various constants needed.
+* Menu variables::              Variables for menu information.
+* Check argument count::        Error checking.
+* Setting up two passes::       Setting up two passes.
+* Tracking our place::          Tracking our place in the tree.
+@end menu
+
+@node Manifest constants
+@section Manifest Constants
+
+Besides some manifest constants, the @code{Level} array is important. It
+indicates the level for all the title lines that can appear in Texinfo.
+
+@<Set up constants@>=
+# Manifest constants
+TRUE = 1
+FALSE = 0
+
+# Levels at which different nodes can be
+Level["@top"] = 0
+Level["@appendix"] = 1
+Level["@chapter"] = 1
+Level["@majorheading"] = 1
+Level["@unnumbered"] = 1
+Level["@appendixsec"] = 2
+Level["@section"] = 2
+Level["@heading"] = 2
+Level["@unnumberedsec"] = 2
+Level["@unnumberedsubsec"] = 3
+Level["@appendixsubsec"] = 3
+Level["@subsection"] = 3
+Level["@subheading"] = 3
+Level["@unnumberedsubsubsec"] = 4
+Level["@appendixsubsubsec"] = 4
+Level["@subsubsection"] = 4
+Level["@subsubheading"] = 4
+@
+
+@cindex conventions, programming
+@cindex programming conventions
+@noindent
+The @code{Level} array also shows a convention used throughout this
+program: global variables begin with an initial uppercase letter.
+
+@node Menu variables
+@section Menu Variables
+
+The program has two variables for controlling how menus are printed; they
+are initialized here.
+
+@<Menu variables@>=
+# Length of menus
+if (Menumargin == 0)
+	Menumargin = 78
+
+# Length of menu item
+if (Min_menitem_length == 0)
+	Min_menitem_length = 29
+@
+
+@code{Menumargin} indicates how long a menu line can be before
+it is broken onto the next line.
+
+Similarly, @code{Min_menitem_length} indicates how long the combination
+of the short description and node name should be.  In other words, the
+two together are padded with spaces to this length. This makes the long
+descriptions all start in the same column, which gives the menus a
+very nice appearance.
+
+Both of these variables may be set by the user via @command{awk}'s
+@option{-v} option; we provide default values only if the user did not.
+
+@node Check argument count
+@section Check The Number of Arguments
+
+After setting @code{Min_menitem_length},
+the next chunk of code does some simple error checking, to make
+sure that the program was invoked correctly.
+
+@<Check argument count@>=
+# Ensure that we were called correctly
+if (ARGC != 2) {
+	print "usage: prepinfo texinfo-file > new-file\n" > "/dev/stderr"
+	exit 1
+}
+@
+
+@node Setting up two passes
+@section Setting Up Two Passes
+
+@cindex multiple passes over data
+@cindex passes, multiple
+Here we see how a program can manipulate the list of files that it will
+process. Note how @code{ARGV[2]} is set to a variable assignment! This
+is processed after the first pass through the input file is complete.
+
+@<Set up multiple passes@>=
+# Arrange for two passes over input file
+Pass = 1
+ARGV[2] = "Pass=2"
+ARGV[3] = ARGV[1]
+ARGC = 4
+@
+
+The program makes two passes, one to build up all the data structures
+and then the second to write out the correct information. By doing this
+assignment, we can tell which pass we're on.
+
+@node Tracking our place
+@section Tracking Our Place in the Hierarchy
+
+Two arrays, @code{Up} and @code{Prev}, keep track of information about
+the current node's place in the hierarchical tree structure of the document.
+The variable @code{Lastlevel} indicates the level of the @emph{last}
+node that we processed.
+They are initialized here.
+
+@<Initialize stacks@>=
+# Initialize stacks
+Lastlevel = -1
+Up[-1] = "(dir)"
+Prev[0] = "(dir)"
+@
+
+The @code{Up} and @code{Prev} arrays serve as stacks. The value of
+@code{Up[@var{current level} - 1]} is the name of the node above the current
+one.  The value of @code{Prev[@var{current level}]} is the name of the
+current node's previous sibling.
+
+Why is this useful? For example, for the current node, we have to set
+the ``next'' field of the previous node to point to this node.
+
+@node Prepinfo Support
+@chapter Support Functions for @command{prepinfo}
+
+Here are some supporting functions that are used throughout the rest
+of the program.
+
+The @code{err_prefix()} function simply prints the program name, input
+file name and line number, as a prefix to the real error message. It
+saves typing in the program itself.@footnote{After the fact, I realized
+that this could also have been done as @sc{TexiWebJr.@:} chunk. Oh well.}
+
+@<Helper Functions@>=
+function err_prefix()
+{
+	printf("prepinfo:%s:%d: ", FILENAME, FNR) > "/dev/stderr"
+}
+@
+
+The @code{getnodename()} function takes care of extracting the node
+name from the @samp{@@node} line, using @code{sub()}.
+
+@<Helper Functions@>=
+function getnodename(str)
+{
+	sub(/^@node[ \t]+/, "", str)
+	sub(/[ \t]*,.*/, "", str)
+
+	@<DEBUG: Node names@>
+
+	return str
+}
+@
+
+@node Gathering Node Info
+@chapter Gathering Information About Nodes
+
+The first pass reads through the Texinfo file gathering information.
+
+@<First pass@>=
+@<Skip @code{@@ignore}@>
+@<Find and save the node name@>
+@<Process fakenodes@>
+@<Find chapters, sections, etc.@>
+@<Process menus@>
+@<DEBUG: Dump nodes@>
+@
+
+@menu
+* Skipping ignored lines::      Skipping lines that start with @@ignore.
+* Save the node name::          Saving the node name.
+* Fakenodes::                   Handling titles without nodes lines.
+* Finding chapters etc::        Finding chapters, sections, and so on.
+* Updating links::              Updating links within the data structures.
+* Gathering Menu Info::         Collecting info about menus.
+@end menu
+
+@node Skipping ignored lines
+@section Skipping Ignored Lines
+
+Here is
+the first of the rules that does this collection.  Its job is to skip over
+things that are purposely being ignored, e.g., chapters that are still being
+written.  Such text is bracketed by @samp{@@@w{ignore}} and @samp{@@@w{end} ignore}.
+
+@<Skip @code{@@ignore}@>=
+/^@ignore/ && Pass == 1, /^@end[ \t]+ignore/ && Pass == 1 {
+	next
+}
+@
+
+@node Save the node name
+@section Finding and Saving The Node Name
+
+@cindex flag variables
+The job for the next rule is simply to find and save the name of
+the current node in the variable @code{Name}.  It then sets the
+@code{Nodeseen} flag, so that when we find a title line, we know we've
+already seen the corresponding node.
+
+It also tracks the length of each node's name, finding the maximum length.
+This is used later, for printing the master menu.
+
+@<Find and save the node name@>=
+# @node lines, save nodename
+
+$1 == "@node" {
+	Name = getnodename($0)
+	Nodeseen = TRUE
+
+	if ((l = length(Name)) > Maxlen)
+		Maxlen = l
+
+	@<DEBUG: Node name being processed@>
+
+	if (Pass == 1)
+		next
+}
+@
+
+@node Fakenodes
+@section Handling Titles That Aren't Nodes
+
+Occasionally, there are subtopics that don't deserve their own node.
+Yet, one still has to provide an @samp{@@unnumberedsubsec} title line
+to get the correct output.  We have to have a way to tell @command{prepinfo}
+to ignore the next title line that it sees.
+
+The solution is to have a special comment line indicating that the following
+title line should be ignored. These are called @dfn{fakenodes}.
+
+@<Process fakenodes@>=
+Pass == 1 && /^@c(omment)?[ \t]+fakenode/ {
+	@<DEBUG: Fakenodes@>
+	Fakenode = TRUE
+	next
+}
+@
+
+Comments in Texinfo start with either @samp{@@c} or @samp{@@comment}
+at the beginning of a line.
+Thus the regexp indicates that the @samp{omment} part is optional.
+
+@node Finding chapters etc
+@section Finding Chapters, Sections, and So On
+
+@cindex flag variables
+Now we start looking for @samp{@@chapter}, @samp{@@section}, etc. lines.
+Note the use of @samp{($1 in Level)} as a fast check for whether this is
+a title line or not.
+If this line is associated with a fakenode, we reset the @code{Fakenode}
+flag and go on to the next line.
+Otherwise, we save the type of the line in @code{type} for later use.
+If this is a title line without a previous @samp{@@node} line, we just
+skip it, otherwise we reset the @code{Nodeseen} flag for next time.
+
+@<Find chapters, sections, etc.@>=
+# Build the tree of nodes in associative array `Node'
+Pass == 1 && ($1 in Level) {
+	# Skip fake nodes --- titles without @node lines
+	if (Fakenode) {
+		@<DEBUG: Skipping fakenodes@>
+		Fakenode = FALSE
+		next
+	}
+
+	@<DEBUG: Titles@>
+
+	# Save type
+	type = $1
+
+	if (! Nodeseen) {
+		err_prefix()
+		printf("%s line with no @node or fakenode line\n", type) \
+													> "/dev/stderr"
+		next
+	} else
+		Nodeseen = FALSE    # reset it
+@
+
+We keep the following information about each node.
+
+@tex
+@hbox to @hsize{@hfill @vbox{\hsize=3in %
+@multitable {@w{Name ".longdesc"}} {Short description for menu (optional)}
+@item @code{Name ".level"} @tab Level number of this node
+@item @code{Name ".up"} @tab Parent of this node
+@item @code{Name ".prev"} @tab Previous node to this node
+@item @code{Name ".next"} @tab Node after this node
+@item @code{Name ".child"} @tab First child of this node
+@item @code{Name ".mendesc"} @tab Short description for menu (optional)
+@item @code{@w{Name ".longdesc"}} @tab Long description for menu
+@end multitable
+}@hfill}%
+@end tex
+
+@ifnottex
+@multitable {@w{Name ".longdesc"}} {Short description for menu (optional)}
+@item @code{Name ".level"} @tab Level number this node is at
+@item @code{Name ".up"} @tab Parent of this node
+@item @code{Name ".prev"} @tab Previous node to this node
+@item @code{Name ".next"} @tab Node after this node
+@item @code{Name ".child"} @tab First child of this node
+@item @code{Name ".mendesc"} @tab Short description for menu (optional)
+@item @code{@w{Name ".longdesc"}} @tab Long description for menu
+@end multitable
+@end ifnottex
+
+The associative array @code{Node} stores all the information about each node.
+The indices are made up by concatenating the node name with a fixed string.
+It could just as easily have been done with multiple dimensions but this
+way is better if we need to print the index (e.g., for debugging).
+
+@<Find chapters, sections, etc.@>=
+	# Squirrel away the info
+	levelnum = Level[type]
+	Node[Name ".level"] = levelnum
+
+	@<DEBUG: Tracking title levels@>
+@
+
+If you think this looks like C or C++ structure notation, you're right.
+All of this information is needed for each node. We'll see below how to
+use these indices to simulate a linked-list walk.
+
+@node Updating links
+@section Updating Links
+
+As we go through the file, we have to update the ``links.'' For example,
+we have to set the @code{".next"} link of the @emph{previous} node to
+point to the current node.
+
+@<Find chapters, sections, etc.@>=
+@<Update links: Levels are equal@>
+@<Update links: Current less than previous@>
+@<Update links: Current greater than previous@>
+@
+
+@menu
+* Equal levels::                Current level is the same as previous.
+* Current less than previous::  Current level is higher up than previous.
+* Current greater than previous:: Current level is lower down than previous.
+@end menu
+
+@node Equal levels
+@subsection Equal Levels
+
+There are three cases. This is the first, where this node and the previous
+node are at the same level.  This occurs, for example, when there are two
+sections one right after the other.
+
+@<Update links: Levels are equal@>=
+	if (levelnum == Lastlevel) {
+		# E.g., two sections in a row
+		Node[Name ".up"] = Up[levelnum - 1]
+		if (levelnum in Prev) {
+			Node[Prev[levelnum] ".next"] = Name
+			Node[Name ".prev"] = Prev[levelnum]
+		}
+		Prev[levelnum] = Name
+		Up[levelnum] = Name
+	}
+@
+
+First, we set the @code{".up"} link to point to the parent node. This
+is maintained in the @code{Up} array, indexed by the next lowest level
+number.
+(Lower numbers are logically higher in the tree.)
+
+Next, we check that there is a previous node. This test would be false, for
+instance, for the first section in a chapter.  If there is a previous node,
+we set its @code{".next"} link to point to the current node. Then we
+set our @code{".prev"} link to point to the previous one.
+
+Finally, we update the @code{Prev} and @code{Up} arrays to point to
+the current node, so that it is the previous node for the next one at this level
+and the parent node for any children.
+
+@node Current less than previous
+@subsection Current Level Less Than The Previous One
+
+Next comes the second of the three cases, where our level number is lower
+than that of the previous one. This means that we are now at a conceptually
+higher level in the tree, for example, a chapter following the last section
+of the previous chapter.
+
+@<Update links: Current less than previous@>=
+	else if (levelnum < Lastlevel) {
+		# section, now chapter
+		Lastlevel = levelnum
+		Node[Name ".up"] = Up[levelnum - 1]
+		if (levelnum in Prev) {
+			Node[Name ".prev"] = Prev[levelnum]
+			Node[Prev[levelnum] ".next"] = Name
+		}
+		Prev[levelnum] = Name
+		Up[levelnum] = Name
+	}
+@
+
+Since the level has changed, we have to update @code{Lastlevel} to be
+the current level.  Then we set the @code{".up"} pointer, just as before.
+
+And again, if there is a previous node at this level, we set our
+@code{".prev"} link to point to it and then we update its @code{".next"}
+link to point to the current node.
+
+And finally, we update the two stacks, @code{Prev} and @code{Up}.
+
+@node Current greater than previous
+@subsection Current Level Greater Than The Previous One
+
+The third case is where we've gone down a level, for instance from a
+chapter to a section.
+
+@<Update links: Current greater than previous@>=
+	else {
+		# chapter, now section,
+		# levelnum > Lastlevel
+		Node[Name ".up"] = Up[levelnum - 1]
+		Node[Up[Lastlevel] ".child"] = Name
+		Prev[levelnum] = Name
+		Up[levelnum] = Name
+		Lastlevel = levelnum
+	}
+
+	# For master menu
+	if (Level[$1] >= 2)
+		List[++Sequence] = Name
+
+	@<DEBUG: Tracking title levels in more detail@>
+}
+@
+
+First, we set the @code{".up"} link of the current node to point to
+its parent. Then we update the @code{".child"} link of the parent to
+point to the current node, which is the first child.
+
+Then, as before, we update the @code{Prev} and @code{Up} stacks, and
+change the value of @code{Lastlevel} to the current level.
+
+So, as we go along, we build a tree structure of nodes, all using
+the indices of the associative array. By using the @code{".child"} links,
+we can move from a node to the first of its children, and then use the
+@code{".next"} links to navigate through all the nodes at a given level.
+
+After updating the links, the code saves each section-and-below level node
+in the sequential array @code{List}.  This is used later for
+dumping out the master menu that lists all the nodes in the Texinfo file.
+
+@node Gathering Menu Info
+@section Gathering Menu Information
+
+This next rule handles extracting information out of menus.  This code
+works for every Texinfo document I have written, but it may not handle
+menus in their most general form, as they appear in other Texinfo files.
+
+@<Process menus@>=
+/^@menu/ && Pass == 1, /^@end[ \t]menu/ && Pass == 1 {
+	@<Skip control lines@>
+	@<DEBUG: Menu being processed@>
+	@<Process a menu line@>
+}
+@
+
+The pattern is a range pattern, so the rule only gets executed for lines
+bracketed by @samp{@@menu} and @samp{@@end menu}.
+
+@<Skip control lines@>=
+if (/^@menu/ || /^@end[ \t]menu/)
+	next
+
+if (/^@detailmenu/ || /^@end[ \t]+detailmenu/)
+	next
+@
+
+The first statement in the action part simply ignores those lines.
+The next statement ignores @samp{@@detailmenu} lines; the detailed menu
+is discussed below.  (Both of these could have been combined into
+a single @code{if} with an ugly regexp; the current version is clearer.)
+
+We now start processing actual menu lines. This proceeds in
+several steps.
+
+@<Process a menu line@>=
+if (/^\*/) {
+	if (In_menitem) {  # Save info from previous line
+		Node[node ".mendesc"] = desc
+		Node[node ".longdesc"] = longdesc
+		@<DEBUG: Menu description being processed@>
+	}
+	In_menitem = TRUE
+@
+
+If the current line begins with a @samp{*}, it's the beginning of a new
+menu item.  If we were already in one, then we're done collecting it and
+it needs to be saved away. The @code{node} variable is the name of the
+node whose menu item we were processing.
+
+In any case, whether we were processing a menu item before or not, we
+are now in one, so we set @code{In_menitem} to true.
+
+Now it's time to pull the menu item apart into its component pieces---the
+node name, the short description and the long description.
+
+@<Process a menu line@>=
+	# Pull apart menu item
+	$1 = ""        # nuke ``*''
+	$0 = $0        # reparse line
+	i1 = index($0, ":")
+	if (i1 <= 0) {
+		err_prefix()
+		printf("badly formed menu item") > "/dev/stderr"
+		next
+	}
+@
+
+@noindent
+The first two lines remove the @samp{*} and then reparse the line.
+If there is no colon, it's a bad entry (see the description of menus
+earlier in @ref{Texinfo Introduction}), so the line is skipped.
+
+The first case to handle is a three-part menu item, which consists of the short
+description, a period, the node name, a colon and then the long description,
+which can be multi-line (e.g.,
+@samp{Be Cool. Dating: How to date and stay cool.}).
+
+@<Process a menu line@>=
+	# desc: node.   long desc
+	if (substr($0, i1 + 1, 1) != ":") {
+		i2 = index($0, ".")
+		if (i2 <= 0) {
+			err_prefix()
+			printf("badly formed menu item") > "/dev/stderr"
+			next
+		}
+		desc = substr($0, 1, i1 - 1)
+		node = substr($0, i1 + 1, i2 - i1 - 1)
+		sub(/^[ \t]+/, "", node)
+		sub(/[ \t]+$/, "", node)
+		sub(/^[ \t]+/, "", desc)
+		sub(/[ \t]+$/, "", desc)
+		longdesc = substr($0, i2 + 1)
+	}
+@
+
+Most of the work is the use of @code{substr()} to pull out the
+various pieces, without getting the colon and the period.  Then the
+various calls to @code{sub()} simply remove leading and trailing whitespace.
+
+Finally, we start to build up the long description, kept in the variable
+@code{longdesc}.
+
+@<Process a menu line@>=
+	else {    # nodename:: long desc
+		desc = ""
+		node = substr($0, 1, i1 - 1)
+		sub(/^[ \t]+/, "", node)
+		sub(/[ \t]+$/, "", node)
+		longdesc = substr($0, i1 + 2)
+	}
+}
+else if (In_menitem) {    # Continuation line
+	longdesc = longdesc " " $0
+} else
+	In_menitem = FALSE
+
+Node[node ".mendesc"] = desc
+Node[node ".longdesc"] = longdesc
+
+@<DEBUG: Menu description being processed@>
+@<DEBUG: All menu data found@>
+@
+
+The first @code{else} handles the more common menu line, where
+there is no short description.  Its use of @code{substr()} and @code{sub()}
+is similar to the first part of the @code{if} but there's not as
+much to extract in the case of just a node name and long description.
+
+If the line did not begin with a @samp{*} and we were in a menu item,
+we have a subsequent line from a long description. So we add it to the
+end of the @code{longdesc} variable.
+
+Finally, we save the node's description and long description. This
+has to be done right away; consider the case of the last menu line in
+a menu; it would be less obvious what was happening if the long description
+were finalized upon seeing the @samp{@@end menu} line.
+
+Let's take stock of what we've done so far:
+
+@itemize @bullet
+@item
+Collect each node's level and link information.
+
+@item
+Collect each node's menu information.
+@end itemize
+
+The complicating factors are:
+
+@itemize @bullet
+@item
+Tracking the level of everything correctly.
+
+@item
+Menu entries are a pain.
+
+@item
+Getting rid of extra whitespace in things.
+@end itemize
+
+@node Printing Updated Info
+@chapter Printing Updated Nodes and Menus
+
+All the rules that handle printing the new version of the file depend
+upon the comparison @samp{Pass == 2}.  Since the @code{BEGIN} rule
+set up @samp{ARGV[2] = "Pass=2"}, the condition becomes true
+for the second pass over the file.
+
+@<Second pass@>=
+@<Print @code{@@node} lines@>
+@<Print menus@>
+@<Pass everything else on through@>
+@
+
+@menu
+* Print node lines::            Printing @@node lines.
+* Printing menus::              Printing menus.
+* Printing menu items::         Formatting and printing menu items.
+* Pass everything else on::     Passing everything else on through.
+@end menu
+
+@node Print node lines
+@section Printing @code{@@node} Lines
+
+The first thing to do is print correct @samp{@@node} lines.  This rule
+extracts the node name. It then does some special case handling for the
+@samp{Top} node.  The variable @code{n} is the next node for the
+current one.
+
+@<Print @code{@@node} lines@>=
+# Print @node line
+Pass == 2 && /^@node/ {
+	Name = getnodename($0)
+
+	# Top node is special. Its next is the first child
+	n = Node[Name ".next"]
+	if (Node[Name ".level"] == 0 && n == "")
+		n = Node[Name ".child"]
+
+	printf("@node %s, %s, %s, %s\n", Name, n,
+		Node[Name ".prev"] ? Node[Name ".prev"] \
+						   : Node[Name ".up"],
+		Node[Name ".up"])
+	next
+}
+@
+
+It is conventional in Texinfo files, when there is no previous node, to
+use the ``up'' node in that slot. The test with @samp{?:} handles this.
+
+@node Printing menus
+@section Printing Menus
+
+Printing menus well is a lot of work, as we're about to see.
+
+@<Print menus@>=
+# Print menu for current node
+Pass == 2 && /^@menu/ {
+	# First, skip current contents of menu
+	do {
+		if ((getline) <= 0) {
+			err_prefix()
+			printf("unexpected EOF inside menu\n") > "/dev/stderr"
+			exit 1
+		}
+	} while (! /^@end[ \t]menu/)
+@
+
+When the beginning of a menu is seen, the program reads and skips all
+the lines up to the end of the menu. The whole menu is
+regenerated from scratch, based on the information collected in the
+first pass.
+
+Note the use of @samp{(getline)} with parentheses to emphasize the
+comparison of the return value with zero.
+
+This next section determines the maximum length of the name of any node in
+this menu.  This is used for pretty formatting, later.
+
+@<Print menus@>=
+	# Next, compute maximum length of a node name
+	max = 0
+	for (n = Node[Name ".child"]; (n ".next") in Node;
+								   n = Node[n ".next"]) {
+		if ((n ".desc") in Node)
+			s = Node[n ".desc"] ": " n "."
+		else
+			s = n "::"
+		l = length(s)
+		if (l > max)
+			max = l
+	}
+	if (max < Min_menitem_length)
+		max = Min_menitem_length
+@
+
+Note how the @code{for} loop walks down the list of nodes, starting
+with the first child and going through the @code{".next"} link to
+each subsequent node.
+This is essentially a linked list walk but with associative arrays!
+
+The body of the loop just deals with whether the node has a short
+description or not. It builds up a sample output string to get the
+correct length.
+
+Finally, after the loop is done, if @code{max} is less than the
+@code{Min_menitem_length} set earlier, we set it equal to
+@code{Min_menitem_length}.
+
+Printing the menu is straightforward. We print the @samp{@@menu} line
+and then again walk through all the nodes, printing their menu items.
+The actual printing is done by @code{print_menuitem()}, which is shown below.
+The final call to @code{print_menuitem()} is necessary to get the menu for
+the current node; it is not printed by the @code{for} loop, since it
+does not have a @code{".next"} link.
+
+If this is the @samp{Top} node, then in addition to the regular
+contents of the menu, we have to print the master menu, which has all
+the section-level and below nodes in sequential order.
+The section-level and below nodes should be bracketed by the
+@samp{@@detailmenu} and @samp{@@end detailmenu} commands.
+
+@<Print menus@>=
+	# Now dump the menu
+	print "@menu"
+
+	for (n = Node[Name ".child"]; (n ".next") in Node;
+								   n = Node[n ".next"]) {
+		print_menuitem(n, max)
+	}
+	print_menuitem(n, max)
+
+	if (Name == "Top") {    # Master Menu
+		if (Maxlen < Min_menitem_length)
+			Maxlen = Min_menitem_length
+		print ""
+		print "@detailmenu"
+		for (i = 1; i <= Sequence; i++)
+			print_menuitem(List[i], Maxlen)
+		print "@end detailmenu"
+	}
+	print "@end menu"
+	next
+}
+@
+
+The @code{Maxlen} variable is the length of the longest node name in
+the whole Texinfo file. We make sure it's at least as big as
+@code{Min_menitem_length} and then we print out all the nodes in
+the @code{List} array.
+
+Finally, the @samp{@@end menu} is printed and we go on to the next
+input line.
+
+@node Printing menu items
+@section Printing Menu Items
+
+The last major task is to format and print menu items.
+
+@<Helper Functions@>=
+@<Function @code{print_menuitem()}@>
+@
+
+This function handles that job.  Note the local
+variables at the end of the parameter list.
+
+@<Function @code{print_menuitem()}@>=
+# Print nice description with reformatting as needed
+
+function print_menuitem(n, max,    # params
+						nodesc, i, dwords, count, p)
+{
+	nodesc = FALSE
+	if (! ((n ".longdesc") in Node)) {
+		err_prefix()
+		printf("warning: %s: no long description\n", n) > "/dev/stderr"
+		nodesc = TRUE
+	} else
+		count = split(Node[n ".longdesc"], dwords, " ")
+
+	if ((n ".desc") in Node)
+		s = Node[n ".desc"] ": " n "."
+	else
+		s = n "::"
+	printf("* %-*s", max, s)
+
+	@<DEBUG: Menu description item@>
+@
+
+The @code{nodesc} variable is true if there is no long description.
+If there is a long description, @code{split()} puts each word into
+the @code{dwords} array and @code{count} contains how many words
+there are.
+Note that the default field separator @w{@code{" "}}
+splits on newlines as well as on spaces and tabs.
+
+The @code{if} statement builds up the right text for the initial part
+of the menu entry and then it's printed. Note the use of the dynamic
+field width in the @code{printf} statement.
+
+The debugging statement lets us see the final form of the description.
+
+Finally, the long description (if there is one), is printed.
+
+@<Function @code{print_menuitem()}@>=
+	p = max + 2
+	if (! nodesc) {
+		for (i = 1; i <= count; i++) {
+			l = length(dwords[i])
+			if (l == 0)
+				continue
+			if (p + l + 1 > Menumargin) {
+				printf("\n%*s", max + 2, " ")
+				p = max + 2
+			}
+			printf(" %s", dwords[i])
+			p += l + 1
+		}
+	}
+	print ""
+}
+@
+
+The variable @code{p} is the starting column on the line where the
+words for the long description are to go. It also tracks the current
+position on the output line.
+
+If there is a long description, then it is printed, word by word.
+Before printing each word, the program checks that the word is non-zero
+in length and also that this word won't go past the last character
+on the output line (in @code{Menumargin}).
+
+If the word would overshoot the margin, then we print a newline and
+enough spaces to get to where the word needs to go.  Again note the
+use of the dynamic field width specification in the @code{printf} statement.
+
+As each word is printed, @code{p} is incremented by the length of
+the word plus one, for the leading space that separates words.
+
+The last word in the long description will not have the final newline.
+This is handled by the @samp{print ""} at the end.
+
+@node Pass everything else on
+@section Printing Everything Else
+
+A rule at the end handles anything that isn't an @samp{@@node} or
+@samp{@@menu} line.  These should just be printed as is.
+
+@<Pass everything else on through@>=
+Pass == 2    # print
+@
+
+@node Summary
+@unnumbered Summary
+
+Hopefully @command{prepinfo} has given you a feel for the power of @command{awk}
+in action.  This program continues to be an invaluable tool for managing the ongoing
+evolution of the @command{gawk} documentation.
+
+Some of the interesting points about this program are:
+
+@itemize @bullet
+@item
+In very little code, it accomplishes a significant data-manipulation task.
+
+@item
+The two-pass nature of the program; the first to gather data and the
+second to generate the modified version of the Texinfo file.
+
+@item
+The way the @code{BEGIN} rule manipulates @code{ARGC} and @code{ARGV} to
+arrange for two passes over the input.
+
+@item
+How regexp matching against the @code{Debug} variable controls the
+kind(s) of debugging information that's printed.
+
+@item
+The way it uses associative arrays to simulate the records or structures of
+conventional programming languages.
+
+@item
+The way it uses associative arrays to create a ``linked list'' of these
+structures and to navigate them.
+@end itemize
+
+@node Legal Stuff
+@appendix Legal Stuff
+
+Here is the @samp{#!} line and the copyright notice.
+
+@use_smallexample
+@<Shebang and copyright@>=
+#! /usr/bin/gawk -f
+
+# prepinfo.awk --- correct node lines and build menus
+
+# Copyright (C) 1997, 2001, 2018 Arnold David Robbins
+#                    (arnold@skeeve.com)
+#
+# PREPINFO is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either
+# version 3 of the License, or (at your option) any later
+# version.
+#
+# PREPINFO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA
+#
+# The most recent version of PREPINFO may be found at
+# 	https://github.com/arnoldrobbins/prepinfo
+@
+@use_example
+
+@node Debug Chunks
+@appendix Debugging Chunks
+
+This @value{APPENDIX} groups all the different debugging statements
+together, out of the way of the main program's flow and description.
+
+Debugging code all follows the same pattern.  The @code{Debug} variable
+can be set to a string using the @option{-v} command-line option.
+That string can contain any number of different keywords to turn on
+debugging for a particular kind of information.
+
+@use_smallexample
+@<DEBUG: Arguments@>=
+if (Debug ~ "args") {
+	for (i = 0; i < ARGC; i++)
+		printf("ARGV[%d] = %s\n", i, ARGV[i]) > "/dev/stderr"
+}
+@
+
+Initially, the program used @samp{==} for all the debugging conditionals.
+However, this only allows one thing to be debugged at a time. By using a
+regexp match, any number can be debugged simultaneously.
+
+At the end of Pass 1, we print information about nodes and titles
+that were collected:
+
+@<DEBUG: Dump nodes@>=
+Pass == 2 && Debug ~ "dumptitles" && FNR <= 1 {
+	for (i in Node)
+		printf("Node[%s] = %s\n", i, Node[i]) | "sort 1>&2"
+	close("sort 1>&2")
+}
+@
+
+This rule is for debugging only (@samp{Debug ~ "dumptitles"}).
+After the first pass
+(@samp{Pass == 2}),
+before doing any significant processing
+(@samp{FNR <= 1}),
+it dumps out a list of all the node titles. They
+are run through the system @command{sort} utility, to provide some order.
+The output from @command{sort} is redirected to the standard error.
+
+Further debugging chunks are provided with little or no commentary.
+
+@<DEBUG: Node names@>=
+if (Debug ~ "nodenames")
+	printf("getnodename: return %s\n", str) > "/dev/stderr"
+@
+
+@<DEBUG: Node name being processed@>=
+if (Debug ~ "nodenames")
+	printf("Name = %s\n", Name) > "/dev/stderr"
+@
+
+@<DEBUG: Fakenodes@>=
+if (Debug ~ "fakenodes")
+    printf("fakenode at %d\n", FNR) > "/dev/stderr"
+@
+
+@<DEBUG: Skipping fakenodes@>=
+if (Debug ~ "fakenodes")
+	printf("%s at %d is a fakenode\n", $1, FNR) > "/dev/stderr"
+@
+
+@<DEBUG: Titles@>=
+if (Debug ~ "titles")
+	printf("Processing %s: Name = %s\n", $1, Name) > "/dev/stderr"
+@
+
+@<DEBUG: Tracking title levels@>=
+if (Debug ~ "titles") {
+	printf("Node[%s\".level\"] = %s\n", Name, Node[Name ".level"]) > "/dev/stderr"
+	printf("Node[%s\".name\"] = %s\n", Name, Node[Name ".name"]) > "/dev/stderr"
+}
+@
+
+@<DEBUG: Tracking title levels in more detail@>=
+if (Debug ~ "titles") {
+	printf("Node[%s\".prev\"] = %s\n", Name, Node[Name ".prev"]) > "/dev/stderr"
+	printf("Node[%s\".up\"] = %s\n", Name, Node[Name ".up"]) > "/dev/stderr"
+	printf("Node[%s\".child\"] = %s\n", Name, Node[Name ".child"]) > "/dev/stderr"
+}
+@
+
+@<DEBUG: Menu being processed@>=
+if (Debug ~ "menu")
+	printf("processing: %s\n", $0) > "/dev/stderr"
+@
+
+@<DEBUG: Menu description being processed@>=
+if (Debug ~ "mendesc") {
+	printf("Node[%s.mendesc] = %s\n", node, Node[node ".mendesc"]) > "/dev/stderr"
+	printf("Node[%s.longdesc] = %s\n", node, Node[node ".longdesc"]) > "/dev/stderr"
+}
+@
+
+@<DEBUG: All menu data found@>=
+if (Debug ~ "menu") {
+	printf("Menu:: Name %s: desc %s: longdesc %s\n", node, desc, longdesc) > "/dev/stderr"
+}
+@
+
+@<DEBUG: Menu description item@>=
+if (Debug ~ "mendescitem")
+	printf("<* %-*s>\n", max, s) > "/dev/stderr"
+@
+@use_example
+
+@node Code Chunk Summaries
+@appendix Code Chunk Summaries
+
+This @value{APPENDIX} presents alphabetical lists of
+all the file definitions, the code chunk definitions,
+and the code chunk references.
+
+@menu
+* File Definitions::            Source files by definition.
+* Code Chunk Definitions::      Code chunks by definition.
+* Code Chunk References::       Code chunks by reference.
+@end menu
+
+@node File Definitions
+@appendixsec Source File Definitions
+
+@print_file_defs
+
+@node Code Chunk Definitions
+@appendixsec Code Chunk Definitions
+
+@print_code_defs
+
+@node Code Chunk References
+@appendixsec Code Chunk References
+
+@print_code_refs
+
+@node Concept Index
+@unnumbered Index
+
+@printindex cp
+
+@bye
+
+TODO:

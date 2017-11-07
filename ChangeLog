@@ -1,0 +1,8 @@
+2017-11-07         Arnold D. Robbins     <arnold@skeeve.com>
+
+	* prepinfo.twjr: Finished conversion from original
+	document. Version set to 0.95.
+	* README.md: New file.
+	* Makefile: New file.
+	* COPYING: The GNU GPL.
+	* texinfo.tex: Imported from Texinfo.
