@@ -1,3 +1,8 @@
+2017-11-07         Arnold D. Robbins     <arnold@skeeve.com>
+
+	* README.md: New file, explaining the history of the program
+	and the branches in the Git repo.
+
 2001-01-23         Arnold D. Robbins     <arnold@gnu.org>
 
 	* prepinfo.awk: Update copyright year.
