@@ -54,7 +54,7 @@ something like this:
 	    V
 	Version 9	Documented in 2001, but not published.
 
-The `alternate-history` branch contains the right-hand side of
+The `alternate-timeline` branch contains the right-hand side of
 the fork; `master` has the left-hand side.
 
 ##### Last Updated
