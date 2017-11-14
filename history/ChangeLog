@@ -39,11 +39,11 @@
 
 	* prepinfo.awk: Use ~ for debug instead of ==. Add many
 	comments to the code.  Extract long node description.
-	Don't print last menu item in Top node. [ Bug, fixed later. ]
+	Don't print last menu item in Top node.
 	Move a few lines up or down for better organization.
 	(getnodename): Improve removal of whitespace.
-	(print_menuitem): Remove some parenthesis in `if .. in' test.  [ Also
-	a bug, fixed later. ]
+	(print_menuitem): Remove some parenthesis in `if .. in' test. [ This
+	was a bug, fixed later. ]
 
 1993-06-06         Arnold D. Robbins     <arnold@skeeve.atl.ga.us>
 
