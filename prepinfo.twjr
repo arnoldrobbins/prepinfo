@@ -20,7 +20,7 @@
 
 @c These apply across the board.
 @set UPDATE-MONTH November, 2017
-@set EDITION 0.95
+@set EDITION 1.0
 
 @set TITLE Prepinfo: A Program To Organize Texinfo Files
 @set SHORTTITLE The @code{prepinfo} Program
@@ -293,6 +293,7 @@ each chunk in the program.
 @c Copied mostly verbatim from the gawk manual.
 
 @cindex Texinfo document formatting language
+@cindex conventions, typographical
 This @value{DOCUMENT} is written in an enhanced version of
 @uref{https://www.gnu.org/software/texinfo/, Texinfo},
 the GNU documentation formatting language.
@@ -331,14 +332,20 @@ in this sentence.  Finally, file names are indicated like this:
 @node Texinfo Introduction
 @chapter A Brief Introduction to Texinfo
 
-@cindex Texinfo
+@cindex Texinfo document formatting language
+@cindex @TeX{}
+@cindex Info files
+@cindex HTML files
+@cindex DocBook XML
 GNU documentation is written in Texinfo.  Texinfo is a nice
 documentation format. A single input file produces both printed
 documentation using @TeX{} and the online documentation (Info files
-and HTML files).
+and HTML files). Generating DocBook XML is also an option.
 This @value{DOCUMENT} was written in it.@footnote{Or rather, a
 version enhanced for literate programming.}
 
+@cindex document, structure
+@cindex structure, of a document
 The program presented in this @value{DOCUMENT} processes GNU Texinfo files, automating the
 updating of control information that describes a document's structure.
 
@@ -378,15 +385,18 @@ A Texinfo document is tree structured. See @ref{tree-structure}.
 This figure is adapted from the Texinfo documentation.
 It shows a document with three chapters, each of which has two sections.
 
+@cindex node, definition of
 The tree structure can go up to four levels deep---chapters, sections,
 subsections and subsubsections.  Each item in the tree is called a @dfn{node}.
 
+@cindex @code{@@node} line
 Each node has two control lines that define its place in the document.
 The first is the @samp{@@node} line, which indicates the start of a node,
 with the node's name, the names of the next and previous nodes at the
 same level in the tree and then the name of the parent node of the current
 node.
 
+@cindex title, definition of
 Then there is the ``title'' line that indicates what kind of heading to
 print, such as chapter, section and so on. Besides the regular titles, there are
 versions for unnumbered headings and for appendix titles, sections, subsections
@@ -399,11 +409,14 @@ and so on. For example:
 @end example
 
 @noindent
+@cindex comments, in Texinfo files
 This example shows the @samp{@@node} line for Chapter 2 and
 an @samp{@@chapter} line.
 The line beginning with @samp{@@c} is a comment; it acts as a
 reminder for the correct ordering of items in the @samp{@@node} line.
 
+@cindex menu, definition of
+@cindex @code{@@menu} block
 Each node with subnodes under it contains a @dfn{menu}
 listing the nodes, with a brief description:
 
@@ -422,6 +435,7 @@ listing the nodes, with a brief description:
 Menus come at the end of the node, before the @samp{@@node} line for
 the first dependent node.
 
+@cindex menu entries
 Menu entries begin with a @samp{*} and can span multiple lines.  There are
 two formats.  The third item shows the long form, with a short
 description, node name and long description.  When the node name and
@@ -432,11 +446,15 @@ subsections, there should be at least two of them.
 This is a convention that makes for good documentation style; nothing
 in software enforces it.
 
+@cindex @code{Top} node
+@cindex @code{(dir)} node
 The @samp{Top} node is the first node in a Texinfo file.
 It is special; its ``next'' node is its first child,
 its ``previous'' and ``up'' nodes are the special node @samp{(dir)},
 which is the entry point for the Info online documentation system.
 
+@cindex master menu
+@cindex menu, master
 The @samp{Top} node also has a @dfn{master menu} listing all
 the nodes in the file.
 The master menu lists all the child nodes of the @samp{Top} node and
@@ -446,7 +464,7 @@ Here are some example control lines.  The subsidiary lines are indented
 to show their logical nesting level. In a real Texinfo file, they would
 not be indented.
 
-@example
+@smallexample
 @@node Preface, Intro, Top, Top
 @@unnumbered Preface
 
@@ -473,8 +491,7 @@ not be indented.
 
     @@node Basic Concepts, , Conventions, What Is Awk
     @@section Basic Programming Concepts
-@end example
-
+@end smallexample
 
 @node What prepinfo does
 @chapter Restructuring Texinfo Files
@@ -489,7 +506,7 @@ One solution would be to write a 1,200 line C program using lots of linked
 lists. But then try to work with it a year later!@footnote{This is exactly
 what I did, in fact.}
 
-The better solution is to rewrite it in around 300 lines of awk,
+The better solution is to rewrite it in around 350 lines of awk,
 including debugging code!
 
 This @value{DOCUMENT}
@@ -509,7 +526,8 @@ It also demonstrates the power of associative arrays.
 
 This program was written to support development of the @command{gawk}
 documentation, so it was only natural that it be written in @command{awk}.
-It has been included in the Texinfo distribution for a long time.
+An earlier version has been included in the Texinfo distribution since 1998,
+and it was updated to the current version late in 2017.
 
 As an example of what @command{prepinfo} does, consider a Texinfo file with
 the following @samp{@@node} and title lines in it:
@@ -541,8 +559,10 @@ The output would be:
 @@node Conventions, Basic Concepts, This Manual, Intro
 @@section Typographical Conventions
 
+@group
 @@node Basic Concepts, , Conventions, What Is Awk
 @@section Basic Programming Concepts
+@end group
 @end example
 
 (The @samp{Preface} and @samp{What Is Awk} nodes are not shown.)
@@ -569,7 +589,7 @@ This translates to:
 @cindex @code{prepinfo.awk} program
 @post_create prepinfo.awk chmod +x prepinfo.awk
 @(prepinfo.awk@)=
-@<Shebang and copyright@>
+@<@code{#!} line and copyright@>
 @<@code{BEGIN} rule@>
 @<First pass@>
 @<Second pass@>
@@ -606,6 +626,11 @@ following @value{SECTION}s.
 @node Manifest constants
 @section Manifest Constants
 
+@cindex constants, manifest
+@cindex manifest constants
+@cindex @code{TRUE}
+@cindex @code{FALSE}
+@cindex @code{Level} array
 Besides some manifest constants, the @code{Level} array is important. It
 indicates the level for all the title lines that can appear in Texinfo.
 
@@ -646,6 +671,8 @@ program: global variables begin with an initial uppercase letter.
 The program has two variables for controlling how menus are printed; they
 are initialized here.
 
+@cindex @code{Menumargin} variable
+@cindex @code{Min_menitem_length} variable
 @<Menu variables@>=
 # Length of menus
 if (Menumargin == 0)
@@ -665,8 +692,10 @@ two together are padded with spaces to this length. This makes the long
 descriptions all start in the same column, which gives the menus a
 very nice appearance.
 
+@cindex @option{-v} option to @command{gawk}
 Both of these variables may be set by the user via @command{awk}'s
-@option{-v} option; we provide default values only if the user did not.
+@option{-v} option; we provide default values only if the user did not
+initialize them.
 
 @node Check argument count
 @section Check The Number of Arguments
@@ -683,17 +712,24 @@ if (ARGC != 2) {
 }
 @
 
+@cindex @code{ARGV[0]}, pitfalls
+We purposely @emph{don't} use @command{awk}'s @code{ARGV[0]} here, since
+what it contains varies across systems. In particular it can contain
+the name of the @command{awk} executable instead of the name of the
+script, and we want the error message to specifically say ``@code{prepinfo}.''
+
 @node Setting up two passes
 @section Setting Up Two Passes
 
 @cindex multiple passes over data
 @cindex passes, multiple
+@cindex variable assignment, @code{ARGV} value
 Here we see how a program can manipulate the list of files that it will
 process. Note how @code{ARGV[2]} is set to a variable assignment! This
 is processed after the first pass through the input file is complete.
 
 @<Set up multiple passes@>=
-# Arrange for two passes over input file
+# Arrange for two passes over input the file
 Pass = 1
 ARGV[2] = "Pass=2"
 ARGV[3] = ARGV[1]
@@ -707,6 +743,9 @@ assignment, we can tell which pass we're on.
 @node Tracking our place
 @section Tracking Our Place in the Hierarchy
 
+@cindex @code{Up} array
+@cindex @code{Prev} array
+@cindex @code{Lastlevel} variable
 Two arrays, @code{Up} and @code{Prev}, keep track of information about
 the current node's place in the hierarchical tree structure of the document.
 The variable @code{Lastlevel} indicates the level of the @emph{last}
@@ -734,10 +773,10 @@ the ``next'' field of the previous node to point to this node.
 Here are some supporting functions that are used throughout the rest
 of the program.
 
+@cindex @code{err_prefix()} function
 The @code{err_prefix()} function simply prints the program name, input
 file name and line number, as a prefix to the real error message. It
-saves typing in the program itself.@footnote{After the fact, I realized
-that this could also have been done as @sc{TexiWebJr.@:} chunk. Oh well.}
+saves typing in the program itself.
 
 @<Helper Functions@>=
 function err_prefix()
@@ -746,6 +785,10 @@ function err_prefix()
 }
 @
 
+@noindent
+Here too, using @code{ARGV[0]} would not be the right thing to do.
+
+@cindex @code{getnodename()} function
 The @code{getnodename()} function takes care of extracting the node
 name from the @samp{@@node} line, using @code{sub()}.
 
@@ -787,8 +830,9 @@ The first pass reads through the Texinfo file gathering information.
 @node Skipping ignored lines
 @section Skipping Ignored Lines
 
-Here is
-the first of the rules that does this collection.  Its job is to skip over
+@cindex ignored lines, skipping
+@cindex @code{@@ignore} block
+Here is the first of the rules that does this collection.  Its job is to skip over
 things that are purposely being ignored, e.g., chapters that are still being
 written.  Such text is bracketed by @samp{@@@w{ignore}} and @samp{@@@w{end} ignore}.
 
@@ -802,12 +846,16 @@ written.  Such text is bracketed by @samp{@@@w{ignore}} and @samp{@@@w{end} igno
 @section Finding and Saving The Node Name
 
 @cindex flag variables
+@cindex @code{Name} variable
+@cindex @code{Nodeseen} variable
 The job for the next rule is simply to find and save the name of
 the current node in the variable @code{Name}.  It then sets the
 @code{Nodeseen} flag, so that when we find a title line, we know we've
 already seen the corresponding node.
 
-It also tracks the length of each node's name, finding the maximum length.
+@cindex @code{Maxlen} variable
+It also tracks the length of each node's name, finding the maximum length,
+and keeping it in the variable @code{Maxlen}.
 This is used later, for printing the master menu.
 
 @<Find and save the node name@>=
@@ -830,6 +878,8 @@ $1 == "@node" {
 @node Fakenodes
 @section Handling Titles That Aren't Nodes
 
+@cindex fake nodes
+@cindex @code{@@unnumberedsubsec} line
 Occasionally, there are subtopics that don't deserve their own node.
 Yet, one still has to provide an @samp{@@unnumberedsubsec} title line
 to get the correct output.  We have to have a way to tell @command{prepinfo}
@@ -846,9 +896,13 @@ Pass == 1 && /^@c(omment)?[ \t]+fakenode/ {
 }
 @
 
+@cindex comments, in Texinfo files
+@cindex @code{Fakenode} variable
 Comments in Texinfo start with either @samp{@@c} or @samp{@@comment}
 at the beginning of a line.
 Thus the regexp indicates that the @samp{omment} part is optional.
+Upon seeing a line that designates a fakenode, we set @code{Fakenode}
+to true.
 
 @node Finding chapters etc
 @section Finding Chapters, Sections, and So On
@@ -889,6 +943,14 @@ Pass == 1 && ($1 in Level) {
 
 We keep the following information about each node.
 
+@cindex @code{".level"} link
+@cindex @code{".up"} link
+@cindex @code{".prev"} link
+@cindex @code{".next"} link
+@cindex @code{".child"} link
+@cindex @code{".mendesc"} short description
+@cindex @code{".longdesc"} long description
+
 @tex
 @hbox to @hsize{@hfill @vbox{\hsize=3in %
 @multitable {@w{Name ".longdesc"}} {Short description for menu (optional)}
@@ -915,6 +977,7 @@ We keep the following information about each node.
 @end multitable
 @end ifnottex
 
+@cindex @code{Node} array
 The associative array @code{Node} stores all the information about each node.
 The indices are made up by concatenating the node name with a fixed string.
 It could just as easily have been done with multiple dimensions but this
@@ -928,6 +991,8 @@ way is better if we need to print the index (e.g., for debugging).
 	@<DEBUG: Tracking title levels@>
 @
 
+@cindex structure notation, C and C++
+@cindex notation for structures, C and C++
 If you think this looks like C or C++ structure notation, you're right.
 All of this information is needed for each node. We'll see below how to
 use these indices to simulate a linked-list walk.
@@ -935,6 +1000,8 @@ use these indices to simulate a linked-list walk.
 @node Updating links
 @section Updating Links
 
+@cindex updating links
+@cindex links, updating
 As we go through the file, we have to update the ``links.'' For example,
 we have to set the @code{".next"} link of the @emph{previous} node to
 point to the current node.
@@ -1053,13 +1120,18 @@ the indices of the associative array. By using the @code{".child"} links,
 we can move from a node to the first of its children, and then use the
 @code{".next"} links to navigate through all the nodes at a given level.
 
+@cindex @code{List} array
+@cindex @code{Sequence} variable
 After updating the links, the code saves each section-and-below level node
 in the sequential array @code{List}.  This is used later for
 dumping out the master menu that lists all the nodes in the Texinfo file.
+@code{Sequence} simply gives us the linear ordering of the nodes as they're
+encountered
 
 @node Gathering Menu Info
 @section Gathering Menu Information
 
+@cindex menu information, extracting
 This next rule handles extracting information out of menus.  This code
 works for every Texinfo document I have written, but it may not handle
 menus in their most general form, as they appear in other Texinfo files.
@@ -1072,6 +1144,7 @@ menus in their most general form, as they appear in other Texinfo files.
 }
 @
 
+@cindex @code{@@menu} block
 The pattern is a range pattern, so the rule only gets executed for lines
 bracketed by @samp{@@menu} and @samp{@@end menu}.
 
@@ -1083,6 +1156,7 @@ if (/^@detailmenu/ || /^@end[ \t]+detailmenu/)
 	next
 @
 
+@cindex @code{@@detailmenu} block
 The first statement in the action part simply ignores those lines.
 The next statement ignores @samp{@@detailmenu} lines; the detailed menu
 is discussed below.  (Both of these could have been combined into
@@ -1106,6 +1180,7 @@ menu item.  If we were already in one, then we're done collecting it and
 it needs to be saved away. The @code{node} variable is the name of the
 node whose menu item we were processing.
 
+@cindex @code{In_menitem} variable
 In any case, whether we were processing a menu item before or not, we
 are now in one, so we set @code{In_menitem} to true.
 
@@ -1129,6 +1204,7 @@ The first two lines remove the @samp{*} and then reparse the line.
 If there is no colon, it's a bad entry (see the description of menus
 earlier in @ref{Texinfo Introduction}), so the line is skipped.
 
+@cindex menu entries, long form
 The first case to handle is a three-part menu item, which consists of the short
 description, a period, the node name, a colon and then the long description,
 which can be multi-line (e.g.,
@@ -1181,6 +1257,7 @@ Node[node ".longdesc"] = longdesc
 @<DEBUG: All menu data found@>
 @
 
+@cindex menu entries, short form
 The first @code{else} handles the more common menu line, where
 there is no short description.  Its use of @code{substr()} and @code{sub()}
 is similar to the first part of the @code{if} but there's not as
@@ -1242,6 +1319,8 @@ for the second pass over the file.
 @node Print node lines
 @section Printing @code{@@node} Lines
 
+@cindex printing @code{@@node} lines
+@cindex @code{@@node} lines, printing
 The first thing to do is print correct @samp{@@node} lines.  This rule
 extracts the node name. It then does some special case handling for the
 @samp{Top} node.  The variable @code{n} is the next node for the
@@ -1271,6 +1350,8 @@ use the ``up'' node in that slot. The test with @samp{?:} handles this.
 @node Printing menus
 @section Printing Menus
 
+@cindex printing menus
+@cindex menus, printing
 Printing menus well is a lot of work, as we're about to see.
 
 @<Print menus@>=
@@ -1314,6 +1395,7 @@ this menu.  This is used for pretty formatting, later.
 		max = Min_menitem_length
 @
 
+@cindex linked list walk
 Note how the @code{for} loop walks down the list of nodes, starting
 with the first child and going through the @code{".next"} link to
 each subsequent node.
@@ -1329,7 +1411,8 @@ Finally, after the loop is done, if @code{max} is less than the
 
 Printing the menu is straightforward. We print the @samp{@@menu} line
 and then again walk through all the nodes, printing their menu items.
-The actual printing is done by @code{print_menuitem()}, which is shown below.
+The actual printing is done by @code{print_menuitem()}, which is shown in
+@ref{Printing menu items}.
 The final call to @code{print_menuitem()} is necessary to get the menu for
 the current node; it is not printed by the @code{for} loop, since it
 does not have a @code{".next"} link.
@@ -1384,6 +1467,7 @@ The last major task is to format and print menu items.
 This function handles that job.  Note the local
 variables at the end of the parameter list.
 
+@cindex @code{print_menitem()} function
 @<Function @code{print_menuitem()}@>=
 # Print nice description with reformatting as needed
 
@@ -1510,7 +1594,7 @@ structures and to navigate them.
 Here is the @samp{#!} line and the copyright notice.
 
 @use_smallexample
-@<Shebang and copyright@>=
+@<@code{#!} line and copyright@>=
 #! /usr/bin/gawk -f
 
 # prepinfo.awk --- correct node lines and build menus
@@ -1684,3 +1768,5 @@ and the code chunk references.
 @bye
 
 TODO:
+
+Change Up[level-1] setting and usage

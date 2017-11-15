@@ -1,3 +1,9 @@
+2017-11-15         Arnold D. Robbins     <arnold@skeeve.com>
+
+	* prepinfo.twjr: Lots of indexing added. Some minor improvements
+	to the exposition. Bumped the version to 1.0.
+	* texinfo.tex: Updated.
+
 2017-11-07         Arnold D. Robbins     <arnold@skeeve.com>
 
 	* prepinfo.twjr: Finished conversion from original
