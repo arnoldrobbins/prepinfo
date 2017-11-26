@@ -18,6 +18,7 @@ prepinfo.html: $(TEXISOURCE)
 	makeinfo --no-split --html $(TEXISOURCE)
 
 spell:
+	export LC_ALL=C; \
 	spell $(SOURCE) | sort -u | comm -23 - aux/wordlist
 
 clean:
